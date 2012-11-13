@@ -1,0 +1,80 @@
+<!doctype>
+<html><head>
+<script type='text/javascript' src='js/jquery-1.8.2.min.js'></script>
+<script type='text/javascript' src='js/kibo.js'></script>
+<script src="/socket.io/socket.io.js"></script>
+</head><body>
+
+<script type='text/javascript' charset='utf8'>
+
+$(document).ready(function() {
+
+var context = new webkitAudioContext();		//webkit browsers only
+
+var local_mode = true;
+var frequency = 3750000;
+var sidetone = 440;
+var oscillators = {};
+
+if (!local_mode) {
+	var socket = io.connect('http://localhost');
+	socket.on('startTX', function (data) {
+		console.log('Start:', data);
+		startTX(data.frequency);
+	});
+	socket.on('endTX', function (data) {
+		console.log('End:', data);
+		endTX(data.frequency);
+	});
+}
+
+function startTX(frequency) {
+	if (oscillators[frequency] != undefined) {
+		++oscillators[frequency].users;
+	} else {
+		osc = context.createOscillator();
+		osc.type = 0;
+		osc.frequency.value = frequency;
+		osc.connect(context.destination);
+		osc.noteOn(0);
+		oscillators[frequency] = {
+			osc: osc,
+			users: 1
+		}
+	}
+}
+
+function endTX(frequency) {
+	if (!oscillators[frequency]) return;
+	if (oscillators[frequency].users <= 1) {
+		oscillators[frequency].osc.noteOff(0);
+		delete oscillators[frequency];
+	} else {
+		--oscillators[frequency].users;
+	}
+}
+
+console.log('starting...');
+var k = new Kibo();
+k.down(['a', 'shift', 'ctrl'], function() {
+	if (local_mode) startTX(sidetone);
+	else socket.emit('startTX', {'frequency':frequency});
+	console.log('shift/caps pressed');
+}).up(['a', 'shift', 'ctrl'], function() {
+	if (local_mode) endTX(sidetone);
+	else socket.emit('endTX', {'frequency':frequency});
+	console.log('...released');
+});
+	
+
+});
+
+
+
+
+
+</script>
+
+<p>Press Shift or CapsLock.</p>
+
+</body></html>

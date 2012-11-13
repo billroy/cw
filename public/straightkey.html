@@ -1,0 +1,41 @@
+<!doctype>
+<html><head>
+<script type='text/javascript' src='js/jquery-1.8.2.min.js'></script>
+<script type='text/javascript' src='js/kibo.js'></script>
+</head><body>
+
+<script type='text/javascript' charset='utf8'>
+
+
+
+$(document).ready(function() {
+
+var context = new webkitAudioContext();		//webkit browsers only
+var oscillator;
+
+console.log(oscillator);
+
+	console.log('starting...');
+	var k = new Kibo();
+	k.down(['a', 'shift', 'ctrl'], function() {
+		oscillator = context.createOscillator();
+		oscillator.type = 0; // sine wave
+		oscillator.frequency.value = 440;
+		oscillator.connect(context.destination);
+		oscillator.noteOn(0);
+		console.log('shift/caps pressed');
+	}).up(['a', 'shift', 'ctrl'], function() {
+		console.log('...released');
+		oscillator.noteOff(0);
+	});
+});
+
+
+
+
+
+</script>
+
+<p>Press Shift or CapsLock.</p>
+
+</body></html>
