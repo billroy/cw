@@ -1,13 +1,24 @@
-var io = require('socket.io').listen(80);
+var express = require('express');
+var app = module.exports = express.createServer().listen(3000);
+var io = require('socket.io').listen(app);
+
+app.configure(function () {
+	app.use(express.logger());
+	app.use(express.static(__dirname + '/public'));
+});
+
+app.get('/', function(req, res) {
+	res.sendfile(__dirname + '/public/index.html');
+});
 
 io.sockets.on('connection', function (socket) {
-  io.sockets.emit('this', { will: 'be received by everyone' });
-
-  socket.on('private message', function (from, msg) {
-    console.log('I received a private message by ', from, ' saying ', msg);
-  });
-
-  socket.on('disconnect', function () {
-    io.sockets.emit('user disconnected');
-  });
+	console.log('Client connected.');
+	socket.on('startTX', function (data) {
+		console.log('startTX:', data);
+		io.sockets.emit('startTX', data);
+	});
+	socket.on('endTX', function (data) {
+		console.log('endTX:', data);
+		io.sockets.emit('endTX', data);
+	});
 });
