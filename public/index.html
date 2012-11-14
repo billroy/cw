@@ -16,10 +16,31 @@ var local_mode = false;
 
 var min_frequency = 7025000;
 var max_frequency = 7125000;
+var min_bandpass = 200;
+var max_bandpass = 2000;
 var rx_frequency = 7030000;		// start out rockbound
 var tx_frequency = 7030000;
 var sidetone = 440;
 var oscillators = {};
+
+
+function localFrequency(f) {
+	if (typeof f === 'number') return f - rx_frequency + sidetone;
+	return f;
+}
+
+function setFrequency(newfreq) {
+	rx_frequency = newfreq;
+	tx_frequency = newfreq;
+	freqtext.attr({text: '' + rx_frequency});
+}
+
+function incrementFrequency(amount) {
+	if (typeof rx_frequency === 'number') {
+		setFrequency(rx_frequency + amount);
+	}
+}
+
 
 if (!local_mode) {
 	var socket = io.connect();
@@ -28,18 +49,22 @@ if (!local_mode) {
 		connection_indicator.attr({fill: '#00ff00', stroke:'#00ff00'});
 	}, 500);
 	socket.on('startTX', function (data) {
-		//console.log('Start:', data);
-		startTX(data.frequency - rx_frequency + sidetone);
-		rx_indicator.attr({fill: rx_indicator_on, stroke:rx_indicator_on});
+		startTX(localFrequency(data.frequency));
 	});
 	socket.on('endTX', function (data) {
-		//console.log('End:', data);
-		endTX(data.frequency - rx_frequency + sidetone);
-		rx_indicator.attr({fill: rx_indicator_off, stroke:rx_indicator_off});
+		endTX(localFrequency(data.frequency));
 	});
 }
 
 function startTX(frequency) {
+	if (!frequency) return;
+	if (typeof frequency != 'number') {
+		if (frequency != rx_frequency) return;
+		frequency = sidetone;
+	}
+	else if ((frequency < min_bandpass) || (frequency > max_bandpass)) return;
+	rx_indicator.attr({fill: rx_indicator_on, stroke: rx_indicator_on});
+
 	if (oscillators[frequency] != undefined) {
 		++oscillators[frequency].users;
 	} else {
@@ -56,6 +81,14 @@ function startTX(frequency) {
 }
 
 function endTX(frequency) {
+	if (!frequency) return;
+	if (typeof frequency != 'number') {
+		if (frequency != rx_frequency) return;
+		frequency = sidetone;
+	}
+	else if ((frequency < min_bandpass) || (frequency > max_bandpass)) return;
+	rx_indicator.attr({fill: rx_indicator_off, stroke: rx_indicator_off});
+
 	if (!oscillators[frequency]) return;
 	if (oscillators[frequency].users <= 1) {
 		oscillators[frequency].osc.noteOff(0);
@@ -66,10 +99,12 @@ function endTX(frequency) {
 }
 
 function start_element() {
+	tx_indicator.attr({fill: tx_indicator_on, stroke: tx_indicator_on});
 	if (local_mode) startTX(sidetone);
 	else socket.emit('startTX', {'frequency': tx_frequency});
 }
 function end_element() {
+	tx_indicator.attr({fill: tx_indicator_off, stroke: tx_indicator_off});
 	if (local_mode) endTX(sidetone);
 	else socket.emit('endTX', {'frequency': tx_frequency});
 }
@@ -159,9 +194,14 @@ var connection_indicator_x = frequency_topleft_x;
 var connection_indicator_y = face_topleft_y + .2 * face_height;
 
 var indicator_pad = 10;
+var tx_indicator_width = 50;
+var tx_indicator_height = 20;
+var tx_indicator_x = connection_indicator_x + connection_indicator_width + indicator_pad;
+var tx_indicator_y = face_topleft_y + .2 * face_height;
+
 var rx_indicator_width = 50;
 var rx_indicator_height = 20;
-var rx_indicator_x = frequency_topleft_x + connection_indicator_width + indicator_pad;
+var rx_indicator_x = tx_indicator_x + tx_indicator_width + indicator_pad;
 var rx_indicator_y = face_topleft_y + .2 * face_height;
 
 //var knob_radius = .2 * .5 * face_width;
@@ -170,37 +210,85 @@ var rx_indicator_y = face_topleft_y + .2 * face_height;
 //var knob_topleft_x = knob_center_x - (knob_radius/2);
 //var knob_topleft_y = knob_center_y - (knob_radius/2);
 
-var tx_button_radius = .05 * face_width;
-var tx_button_center_x = face_topleft_x + (.95 * face_width) - (tx_button_radius/2);
-var tx_button_center_y = face_topleft_y + (.9 * face_height) - (tx_button_radius/2);
+var tx_button_radius = .08 * face_width;
+var tx_button_center_x = face_topleft_x + (.85 * face_width) - (tx_button_radius/2);
+var tx_button_center_y = face_topleft_y + (.8 * face_height) - (tx_button_radius/2);
 
 var rx_indicator_on = '#00ff00';
 var rx_indicator_off = 'darkgreen';
+var tx_indicator_on = '#00ff00';
+var tx_indicator_off = 'darkgreen';
 
-var face_stroke = 'teal';
+var face_stroke = 'seagreen';
 var face_fill = 'black'
 var button_color = 'red';
+
+var interior_corner_radius = 10;
 
 var paper = Raphael(0, 0, $(window).width(), $(window).height());
 
 var face = paper.rect(face_topleft_x, face_topleft_y, face_width, face_height, 20)
 	.attr({stroke: face_stroke, fill: face_fill, 'stroke-width': 10});
 
-var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height)
+var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height, interior_corner_radius)
 	.attr({stroke: face_stroke, fill: face_fill});
 
-var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_width, frequency_height)
+var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_width, frequency_height, 10)
 	.attr({stroke: face_stroke, fill: face_fill});
+
+var bumper_size = .6 * frequency_height;
+var bumper_offset = .1 * frequency_height;
+var bumpup = paper.path([
+	'M', frequency_topleft_x + bumper_size/2 + bumper_offset, frequency_topleft_y + bumper_offset,
+	'l', -bumper_size/2, +bumper_size,
+	'l', bumper_size, 0,
+	'z']).attr({fill: face_stroke, stroke:face_stroke})
+	.click(function(e) {
+		e.stopPropagation();
+		e.preventDefault();
+		incrementFrequency(100);
+	});
+
+var bumpdown = paper.path([
+	'M', frequency_topleft_x + frequency_width - bumper_size - bumper_offset, frequency_topleft_y + bumper_offset,
+	'l', bumper_size, 0,
+	'l', -bumper_size/2, +bumper_size,
+	'z']).attr({fill: face_stroke, stroke:face_stroke})
+	.click(function(e) {
+		e.stopPropagation();
+		e.preventDefault();
+		incrementFrequency(-100);
+	});
 
 var freqtext = paper.text(frequency_topleft_x + frequency_width/2, 
 		frequency_topleft_y + frequency_height/2, ''+rx_frequency)
-	.attr({'font-size':60, stroke: face_stroke, fill:face_stroke});
+	.attr({'font-size':60, stroke: face_stroke, fill:face_stroke})
+	.click(function() {
+		var newfreq = prompt('Enter frequency:', '' + rx_frequency);
+		if (newfreq) {
+			rx_frequency = newfreq;
+			tx_frequency = newfreq;
+			freqtext.attr({'text': newfreq});
+		}
+	});
 
-var connection_indicator = paper.rect(connection_indicator_x, connection_indicator_y, connection_indicator_width, connection_indicator_height)
+var connection_indicator = paper.rect(connection_indicator_x, connection_indicator_y, connection_indicator_width, connection_indicator_height, 5)
 	.attr({fill: 'darkgreen', stroke: 'darkgreen'});
 
-var rx_indicator = paper.rect(rx_indicator_x, rx_indicator_y, rx_indicator_width, rx_indicator_height)
+var connection_legend = paper.text(connection_indicator_x + (connection_indicator_width/2), 
+	connection_indicator_y + (connection_indicator_height/2), 'net');
+
+var tx_indicator = paper.rect(tx_indicator_x, tx_indicator_y, tx_indicator_width, tx_indicator_height, 5)
 	.attr({fill: 'darkgreen', stroke: 'darkgreen'});
+
+var tx_indicator_legend = paper.text(tx_indicator_x + (tx_indicator_width/2),
+	 tx_indicator_y + (tx_indicator_height/2), 'tx');
+
+var rx_indicator = paper.rect(rx_indicator_x, rx_indicator_y, rx_indicator_width, rx_indicator_height, 5)
+	.attr({fill: 'darkgreen', stroke: 'darkgreen'});
+
+var rx_indicator_legend = paper.text(rx_indicator_x + (rx_indicator_width/2),
+	 rx_indicator_y + (rx_indicator_height/2), 'rx');
 
 //var freqknob = paper.circle(knob_center_x, knob_center_y, knob_radius)
 //	.attr({stroke: face_stroke, fill: face_fill});
@@ -209,11 +297,13 @@ var txknob = paper.circle(tx_button_center_x, tx_button_center_y, tx_button_radi
 	.attr({stroke: button_color, fill: button_color})
 	.mousedown(function(e) {
 		start_element();
+		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	})
 	.mouseup(function(e) {
 		end_element();
+		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	})
@@ -224,11 +314,13 @@ var txknob = paper.circle(tx_button_center_x, tx_button_center_y, tx_button_radi
 	})
 	.touchcancel(function(e) {
 		end_element();
+		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	})
 	.touchend(function(e) {
 		end_element();
+		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	});
@@ -260,8 +352,6 @@ var txtext = paper.text(tx_button_center_x, tx_button_center_y, 'TX')
 		e.preventDefault();
 		return false;
 	});
-
-
 
 }); 	// document.ready
 </script>
