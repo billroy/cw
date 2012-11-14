@@ -1,9 +1,10 @@
 <!doctype>
 <html><head>
 <script type='text/javascript' src='js/jquery-1.8.2.min.js'></script>
+<script type='text/javascript' src='/js/raphael.js'></script>
 <script type='text/javascript' src='js/kibo.js'></script>
 <script type='text/javascript' src='/socket.io/socket.io.js'></script>
-</head><body>
+</head><body style='background:gray'>
 
 <script type='text/javascript' charset='utf8'>
 
@@ -12,7 +13,11 @@ $(document).ready(function() {
 var context = new webkitAudioContext();		//webkit browsers only
 
 var local_mode = false;
-var frequency = 440 + Math.random(200);
+
+var min_frequency = 7025000;
+var max_frequency = 7125000;
+var rx_frequency = 7030000;		// start out rockbound
+var tx_frequency = 7030000;
 var sidetone = 440;
 var oscillators = {};
 
@@ -21,11 +26,11 @@ if (!local_mode) {
 	console.log('Socket connected', socket);
 	socket.on('startTX', function (data) {
 		console.log('Start:', data);
-		startTX(data.frequency);
+		startTX(data.frequency - rx_frequency + sidetone);
 	});
 	socket.on('endTX', function (data) {
 		console.log('End:', data);
-		endTX(data.frequency);
+		endTX(data.frequency - rx_frequency + sidetone);
 	});
 }
 
@@ -55,80 +60,148 @@ function endTX(frequency) {
 	}
 }
 
+function start_element() {
+	if (local_mode) startTX(sidetone);
+	else socket.emit('startTX', {'frequency': tx_frequency});
+}
+function end_element() {
+	if (local_mode) endTX(sidetone);
+	else socket.emit('endTX', {'frequency': tx_frequency});
+}
+
 var wpm = 15;
 var dit_time = Math.floor(1200/wpm);
 var dah_time = 3 * dit_time;
 
 var k = new Kibo();
 k.down(['tab', 'shift'], function() {
-	if (local_mode) startTX(frequency);
-	else socket.emit('startTX', {'frequency':frequency});
+	start_element();
 	return false;
 }).up(['tab', 'shift'], function() {
-	if (local_mode) endTX(sidetone);
-	else socket.emit('endTX', {'frequency':frequency});
-	console.log('...released');
+	end_element();
 	return false;
 });
 
 
-var repeating_dah;
 
+var dah_down = 0;
 function send_iambic_dah() {
-	if (!repeating_dah) {
-		if (repeating_dit) send_iambic_dit();
+	if (!dah_down) {
+		if (dit_down) send_iambic_dit();
 		return;
 	}
-	if (local_mode) startTX(frequency);
-	else socket.emit('startTX', {'frequency':frequency});
+	start_element();
 	window.setTimeout(wait_after_dah, dah_time);
 }
-
 function wait_after_dah() {
-	if (local_mode) endTX(frequency);
-	else socket.emit('endTX', {'frequency':frequency});
+	end_element();
 	window.setTimeout(send_iambic_dah, dit_time);
 }
-
-k.down(['ctrl'], function() {
-	if (repeating_dit | repeating_dah) return false;
-	repeating_dah = true;
-	send_iambic_dah();
+k.down(['ctrl'], function() {		// iambic dah key
+	++dah_down;						// note dah is pressed for decrement in up()
+	if (dit_down) return false;		// yield if dit already down
+	if (dah_down == 1) send_iambic_dah();
 	return false;
 }).up(['ctrl'], function() {
-	repeating_dah = false;
+	if (dah_down) --dah_down;
+	else console.log('dah underflow');
 	return false;
 });
 
 
-var repeating_dit;
-
+var dit_down = 0;
 function send_iambic_dit() {
-	if (!repeating_dit) {
-		if (repeating_dah) send_iambic_dah();
+	if (!dit_down) {
+		if (dah_down) send_iambic_dah();
 		return;
 	}
-	if (local_mode) startTX(frequency);
-	else socket.emit('startTX', {'frequency':frequency});
+	start_element();
 	window.setTimeout(wait_after_dit, dit_time);
 }
-
 function wait_after_dit() {
-	if (local_mode) endTX(frequency);
-	else socket.emit('endTX', {'frequency':frequency});
+	end_element();
 	window.setTimeout(send_iambic_dit, dit_time);
 }
-
-k.down(['alt'], function() {
-	if (repeating_dit | repeating_dah) return false;
-	repeating_dit = true;
-	//if (repeating_dah) return false;
-	send_iambic_dit();
+k.down(['alt'], function() {		// iambic dit key
+	++dit_down;						// note dit is pressed for decrement in up()
+	if (dah_down) return false;		// yield if dah already down
+	if (dit_down == 1) send_iambic_dit();
 	return false;
 }).up(['alt'], function() {
-	repeating_dit = false;
+	if (dit_down) --dit_down;
+	else console.log('dit underflow');
 	return false;
 });
+
+var face_width = .9 * $(window).width();
+var face_height = .9 * $(window).height();
+var face_topleft_x = ($(window).width() - face_width)/2;
+var face_topleft_y = ($(window).height() - face_height)/2;
+
+var waterfall_width = .4 * face_width;
+var waterfall_height = .9 * face_height;
+var waterfall_topleft_x = face_topleft_x + .05 * face_width;
+var waterfall_topleft_y = face_topleft_y + .05 * face_height;
+
+var frequency_width = .4 * face_width;
+var frequency_height = .05 * face_width;
+var frequency_topleft_x = face_topleft_x + .55 * face_width;
+var frequency_topleft_y = face_topleft_y + .05 * face_height;
+
+var knob_radius = .2 * .5 * face_width;
+var knob_center_x = face_topleft_x + .75 * face_width;
+var knob_center_y = face_topleft_y + .4 * face_height;
+var knob_topleft_x = knob_center_x - (knob_radius/2);
+var knob_topleft_y = knob_center_y - (knob_radius/2);
+
+var tx_button_radius = .1 * .5 * face_width;
+var tx_button_center_x = face_topleft_x + .75 * face_width;
+var tx_button_center_y = face_topleft_y + .35 * face_width;
+
+var face_stroke = "orangered";
+var face_fill = "black"
+var button_color = "red";
+
+var paper = Raphael(0, 0, $(window).width(), $(window).height());
+
+var face = paper.rect(face_topleft_x, face_topleft_y, face_width, face_height, 20)
+	.attr({stroke: face_stroke, fill: face_fill});
+
+var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height)
+	.attr({stroke: face_stroke, fill: face_fill});
+
+var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_width, frequency_height)
+	.attr({stroke: face_stroke, fill: face_fill});
+
+var freqtext = paper.text(frequency_topleft_x + frequency_width/2, 
+		frequency_topleft_y + frequency_height/2, ""+rx_frequency)
+	.attr({'font-size':60, stroke: face_stroke, fill:face_stroke});
+
+var freqknob = paper.circle(knob_center_x, knob_center_y, knob_radius)
+	.attr({stroke: face_stroke, fill: face_fill});
+
+var txknob = paper.circle(tx_button_center_x, tx_button_center_y, tx_button_radius)
+	.attr({stroke: face_stroke, fill: face_stroke})
+	.mousedown(function() {
+		start_element();
+		return false;
+	})
+	.mouseup(function() {
+		end_element();
+		return false;
+	});
+
+var txtext = paper.text(tx_button_center_x, tx_button_center_y, "TX")
+	.attr({'font-size':40, stroke: 'black', fill:'black'})
+	.mousedown(function() {
+		start_element();
+		return false;
+	})
+	.mouseup(function() {
+		end_element();
+		return false;
+	});
+
 
 
 }); 	// document.ready
@@ -136,5 +209,8 @@ k.down(['alt'], function() {
 
 <p>Press Tab or Shift for straight key.</p>
 <p>Press Control or Alt for iambic keying.</p>
+
+
+
 
 </body></html>
