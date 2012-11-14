@@ -54,6 +54,9 @@ if (!local_mode) {
 	socket.on('endTX', function (data) {
 		endTX(localFrequency(data.frequency));
 	});
+	socket.on('disconnect', function (data) {
+		connection_indicator.attr({stroke: 'darkgreen', fill: 'darkgreen'});
+	});
 }
 
 function startTX(frequency) {
@@ -173,8 +176,8 @@ k.down(['alt'], function() {		// iambic dit key
 	return false;
 });
 
-var face_width = .9 * $(window).width();
-var face_height = .9 * $(window).height();
+var face_width = 1 * $(window).width();
+var face_height = 1 * $(window).height();
 var face_topleft_x = ($(window).width() - face_width)/2;
 var face_topleft_y = ($(window).height() - face_height)/2;
 

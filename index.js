@@ -1,5 +1,10 @@
+
+var port;
+if (process && process.env && process.env.PORT) port = process.env.PORT;
+else port = 3000;
+
 var express = require('express');
-var app = module.exports = express.createServer().listen(3000);
+var app = module.exports = express.createServer().listen(port);
 var io = require('socket.io').listen(app);
 
 app.configure(function () {
