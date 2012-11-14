@@ -12,12 +12,12 @@ $(document).ready(function() {
 var context = new webkitAudioContext();		//webkit browsers only
 
 var local_mode = false;
-var frequency = 440 + Math.random(100);
+var frequency = 440 + Math.random(200);
 var sidetone = 440;
 var oscillators = {};
 
 if (!local_mode) {
-	var socket = io.connect('http://localhost:3000');
+	var socket = io.connect();
 	console.log('Socket connected', socket);
 	socket.on('startTX', function (data) {
 		console.log('Start:', data);
@@ -55,21 +55,86 @@ function endTX(frequency) {
 	}
 }
 
-console.log('starting...');
+var wpm = 15;
+var dit_time = Math.floor(1200/wpm);
+var dah_time = 3 * dit_time;
+
 var k = new Kibo();
-k.down(['a', 'shift', 'ctrl'], function() {
-	if (local_mode) startTX(sidetone);
+k.down(['tab', 'shift'], function() {
+	if (local_mode) startTX(frequency);
 	else socket.emit('startTX', {'frequency':frequency});
-	console.log('shift/caps pressed');
-}).up(['a', 'shift', 'ctrl'], function() {
+	return false;
+}).up(['tab', 'shift'], function() {
 	if (local_mode) endTX(sidetone);
 	else socket.emit('endTX', {'frequency':frequency});
 	console.log('...released');
+	return false;
 });
+
+
+var repeating_dah;
+
+function send_iambic_dah() {
+	if (!repeating_dah) {
+		if (repeating_dit) send_iambic_dit();
+		return;
+	}
+	if (local_mode) startTX(frequency);
+	else socket.emit('startTX', {'frequency':frequency});
+	window.setTimeout(wait_after_dah, dah_time);
+}
+
+function wait_after_dah() {
+	if (local_mode) endTX(frequency);
+	else socket.emit('endTX', {'frequency':frequency});
+	window.setTimeout(send_iambic_dah, dit_time);
+}
+
+k.down(['ctrl'], function() {
+	if (repeating_dit | repeating_dah) return false;
+	repeating_dah = true;
+	send_iambic_dah();
+	return false;
+}).up(['ctrl'], function() {
+	repeating_dah = false;
+	return false;
+});
+
+
+var repeating_dit;
+
+function send_iambic_dit() {
+	if (!repeating_dit) {
+		if (repeating_dah) send_iambic_dah();
+		return;
+	}
+	if (local_mode) startTX(frequency);
+	else socket.emit('startTX', {'frequency':frequency});
+	window.setTimeout(wait_after_dit, dit_time);
+}
+
+function wait_after_dit() {
+	if (local_mode) endTX(frequency);
+	else socket.emit('endTX', {'frequency':frequency});
+	window.setTimeout(send_iambic_dit, dit_time);
+}
+
+k.down(['alt'], function() {
+	if (repeating_dit | repeating_dah) return false;
+	repeating_dit = true;
+	//if (repeating_dah) return false;
+	send_iambic_dit();
+	return false;
+}).up(['alt'], function() {
+	repeating_dit = false;
+	return false;
+});
+
 
 }); 	// document.ready
 </script>
 
-<p>Press Shift or CapsLock.</p>
+<p>Press Tab or Shift for straight key.</p>
+<p>Press Control or Alt for iambic keying.</p>
 
 </body></html>
