@@ -24,13 +24,18 @@ var oscillators = {};
 if (!local_mode) {
 	var socket = io.connect();
 	console.log('Socket connected', socket);
+	window.setTimeout(function() {
+		connection_indicator.attr({fill: '#00ff00', stroke:'#00ff00'});
+	}, 500);
 	socket.on('startTX', function (data) {
-		console.log('Start:', data);
+		//console.log('Start:', data);
 		startTX(data.frequency - rx_frequency + sidetone);
+		rx_indicator.attr({fill: rx_indicator_on, stroke:rx_indicator_on});
 	});
 	socket.on('endTX', function (data) {
-		console.log('End:', data);
+		//console.log('End:', data);
 		endTX(data.frequency - rx_frequency + sidetone);
+		rx_indicator.attr({fill: rx_indicator_off, stroke:rx_indicator_off});
 	});
 }
 
@@ -69,7 +74,7 @@ function end_element() {
 	else socket.emit('endTX', {'frequency': tx_frequency});
 }
 
-var wpm = 15;
+var wpm = 10;
 var dit_time = Math.floor(1200/wpm);
 var dah_time = 3 * dit_time;
 
@@ -87,7 +92,7 @@ k.down(['tab', 'shift'], function() {
 var dah_down = 0;
 function send_iambic_dah() {
 	if (!dah_down) {
-		if (dit_down) send_iambic_dit();
+		if (dit_down) process.nextTick(send_iambic_dit);
 		return;
 	}
 	start_element();
@@ -112,7 +117,7 @@ k.down(['ctrl'], function() {		// iambic dah key
 var dit_down = 0;
 function send_iambic_dit() {
 	if (!dit_down) {
-		if (dah_down) send_iambic_dah();
+		if (dah_down) process.nextTick(send_iambic_dah);
 		return;
 	}
 	start_element();
@@ -148,24 +153,38 @@ var frequency_height = .05 * face_width;
 var frequency_topleft_x = face_topleft_x + .55 * face_width;
 var frequency_topleft_y = face_topleft_y + .05 * face_height;
 
-var knob_radius = .2 * .5 * face_width;
-var knob_center_x = face_topleft_x + .75 * face_width;
-var knob_center_y = face_topleft_y + .4 * face_height;
-var knob_topleft_x = knob_center_x - (knob_radius/2);
-var knob_topleft_y = knob_center_y - (knob_radius/2);
+var connection_indicator_width = 50;
+var connection_indicator_height = 20;
+var connection_indicator_x = frequency_topleft_x;
+var connection_indicator_y = face_topleft_y + .2 * face_height;
 
-var tx_button_radius = .1 * .5 * face_width;
-var tx_button_center_x = face_topleft_x + .75 * face_width;
-var tx_button_center_y = face_topleft_y + .35 * face_width;
+var indicator_pad = 10;
+var rx_indicator_width = 50;
+var rx_indicator_height = 20;
+var rx_indicator_x = frequency_topleft_x + connection_indicator_width + indicator_pad;
+var rx_indicator_y = face_topleft_y + .2 * face_height;
 
-var face_stroke = "orangered";
-var face_fill = "black"
-var button_color = "red";
+//var knob_radius = .2 * .5 * face_width;
+//var knob_center_x = face_topleft_x + .75 * face_width;
+//var knob_center_y = face_topleft_y + .4 * face_height;
+//var knob_topleft_x = knob_center_x - (knob_radius/2);
+//var knob_topleft_y = knob_center_y - (knob_radius/2);
+
+var tx_button_radius = .05 * face_width;
+var tx_button_center_x = face_topleft_x + (.95 * face_width) - (tx_button_radius/2);
+var tx_button_center_y = face_topleft_y + (.9 * face_height) - (tx_button_radius/2);
+
+var rx_indicator_on = '#00ff00';
+var rx_indicator_off = 'darkgreen';
+
+var face_stroke = 'teal';
+var face_fill = 'black'
+var button_color = 'red';
 
 var paper = Raphael(0, 0, $(window).width(), $(window).height());
 
 var face = paper.rect(face_topleft_x, face_topleft_y, face_width, face_height, 20)
-	.attr({stroke: face_stroke, fill: face_fill});
+	.attr({stroke: face_stroke, fill: face_fill, 'stroke-width': 10});
 
 var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height)
 	.attr({stroke: face_stroke, fill: face_fill});
@@ -174,31 +193,71 @@ var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_w
 	.attr({stroke: face_stroke, fill: face_fill});
 
 var freqtext = paper.text(frequency_topleft_x + frequency_width/2, 
-		frequency_topleft_y + frequency_height/2, ""+rx_frequency)
+		frequency_topleft_y + frequency_height/2, ''+rx_frequency)
 	.attr({'font-size':60, stroke: face_stroke, fill:face_stroke});
 
-var freqknob = paper.circle(knob_center_x, knob_center_y, knob_radius)
-	.attr({stroke: face_stroke, fill: face_fill});
+var connection_indicator = paper.rect(connection_indicator_x, connection_indicator_y, connection_indicator_width, connection_indicator_height)
+	.attr({fill: 'darkgreen', stroke: 'darkgreen'});
+
+var rx_indicator = paper.rect(rx_indicator_x, rx_indicator_y, rx_indicator_width, rx_indicator_height)
+	.attr({fill: 'darkgreen', stroke: 'darkgreen'});
+
+//var freqknob = paper.circle(knob_center_x, knob_center_y, knob_radius)
+//	.attr({stroke: face_stroke, fill: face_fill});
 
 var txknob = paper.circle(tx_button_center_x, tx_button_center_y, tx_button_radius)
-	.attr({stroke: face_stroke, fill: face_stroke})
-	.mousedown(function() {
+	.attr({stroke: button_color, fill: button_color})
+	.mousedown(function(e) {
 		start_element();
+		e.preventDefault();
 		return false;
 	})
-	.mouseup(function() {
+	.mouseup(function(e) {
 		end_element();
+		e.preventDefault();
+		return false;
+	})
+	.touchstart(function(e) {
+		start_element();
+		e.preventDefault();
+		return false;
+	})
+	.touchcancel(function(e) {
+		end_element();
+		e.preventDefault();
+		return false;
+	})
+	.touchend(function(e) {
+		end_element();
+		e.preventDefault();
 		return false;
 	});
 
-var txtext = paper.text(tx_button_center_x, tx_button_center_y, "TX")
+var txtext = paper.text(tx_button_center_x, tx_button_center_y, 'TX')
 	.attr({'font-size':40, stroke: 'black', fill:'black'})
-	.mousedown(function() {
+	.mousedown(function(e) {
 		start_element();
+		e.preventDefault();
 		return false;
 	})
-	.mouseup(function() {
+	.mouseup(function(e) {
 		end_element();
+		e.preventDefault();
+		return false;
+	})
+	.touchstart(function(e) {
+		start_element();
+		e.preventDefault();
+		return false;
+	})
+	.touchcancel(function(e) {
+		end_element();
+		e.preventDefault();
+		return false;
+	})
+	.touchend(function(e) {
+		end_element();
+		e.preventDefault();
 		return false;
 	});
 
