@@ -41,6 +41,10 @@ function incrementFrequency(amount) {
 	}
 }
 
+function pingHost() {
+	
+}
+
 
 if (!local_mode) {
 	var socket = io.connect();
@@ -54,9 +58,16 @@ if (!local_mode) {
 	socket.on('endTX', function (data) {
 		endTX(localFrequency(data.frequency));
 	});
+	socket.on('pong', function(data) {
+		var rtt = new Date().getTime() - data.timestamp;
+		window.status = 'RTT: ' + rtt + 'ms';
+	});
 	socket.on('disconnect', function (data) {
 		connection_indicator.attr({stroke: 'darkgreen', fill: 'darkgreen'});
 	});
+	window.setInterval(function() {
+		socket.emit('ping', {'timestamp': new Date().getTime()});
+	}, 1000);
 }
 
 function startTX(frequency) {

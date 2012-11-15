@@ -26,4 +26,8 @@ io.sockets.on('connection', function (socket) {
 		console.log('endTX:', data);
 		io.sockets.emit('endTX', data);
 	});
+	socket.on('ping', function(data) {
+		console.log('ping', data);
+		socket.emit('pong', data);
+	});
 });
