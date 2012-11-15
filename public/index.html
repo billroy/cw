@@ -20,9 +20,10 @@ var min_bandpass = 200;
 var max_bandpass = 2000;
 var rx_frequency = 7030000;		// start out rockbound
 var tx_frequency = 7030000;
+var frequency_increment = 10;
 var sidetone = 440;
-var oscillators = {};
 
+var oscillators = {};
 
 function localFrequency(f) {
 	if (typeof f === 'number') return f - rx_frequency + sidetone;
@@ -40,11 +41,6 @@ function incrementFrequency(amount) {
 		setFrequency(rx_frequency + amount);
 	}
 }
-
-function pingHost() {
-	
-}
-
 
 if (!local_mode) {
 	var socket = io.connect();
@@ -89,9 +85,11 @@ function startTX(frequency) {
 		osc.noteOn(0);
 		oscillators[frequency] = {
 			osc: osc,
-			users: 1
+			users: 1,
+			frequency: frequency
 		}
 	}
+	updateFFT();
 }
 
 function endTX(frequency) {
@@ -110,6 +108,7 @@ function endTX(frequency) {
 	} else {
 		--oscillators[frequency].users;
 	}
+	updateFFT();
 }
 
 function start_element() {
@@ -197,6 +196,14 @@ var waterfall_height = .9 * face_height;
 var waterfall_topleft_x = face_topleft_x + .05 * face_width;
 var waterfall_topleft_y = face_topleft_y + .05 * face_height;
 
+var fft_width = .9 * waterfall_width;
+var fft_height = .1 * waterfall_height;
+var fft_margin = (waterfall_width - fft_width)/2;
+var fft_topleft_x = waterfall_topleft_x + fft_margin;
+var fft_topleft_y = waterfall_topleft_y + fft_margin;
+
+console.log('FFT:', fft_width, fft_height, fft_topleft_x, fft_topleft_y);
+
 var frequency_width = .4 * face_width;
 var frequency_height = .05 * face_width;
 var frequency_topleft_x = face_topleft_x + .55 * face_width;
@@ -247,6 +254,51 @@ var face = paper.rect(face_topleft_x, face_topleft_y, face_width, face_height, 2
 var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height, interior_corner_radius)
 	.attr({stroke: face_stroke, fill: face_fill});
 
+var fft = paper.rect(fft_topleft_x, fft_topleft_y, fft_width, fft_height)
+	.attr({stroke: face_stroke, fill: face_fill});
+
+var fft_bandwidth = 3000;
+var fft_numbars = 128;
+var fft_active_bars = [];
+var fft_bar_width = fft_width / fft_numbars;
+
+if (0) for (var b=0; b<fft_numbars; b++) {
+		fft_bars[b] = paper.rect(
+		fft_topleft_x + b * fft_bar_width,
+		fft_topleft_y, fft_bar_width, fft_height)
+		.attr({stroke: face_fill, fill: face_fill});
+}
+
+function updateFFT() {
+	while (fft_active_bars.length) fft_active_bars.pop().remove();
+
+	var frequency, bar, amplitude;
+	for (var f in oscillators) {
+		frequency = oscillators[f].frequency;
+console.log('osc:', frequency);
+		if (typeof frequency != 'number') {
+			bar = fft_numbars/2;
+			amplitude = 1;
+		}
+		else {
+			if (Math.abs(frequency) > fft_bandwidth/2) continue;
+			bar = (fft_numbars/2) + frequency * fft_numbars / (fft_bandwidth);
+			amplitude = 1;	//frequency / (fft_bandwidth/2);
+		}
+		bar = Math.floor(bar);
+
+console.log('Bar:', bar, amplitude, frequency);
+
+		var bar_rect = paper.rect(
+			fft_topleft_x + (bar * fft_bar_width),
+			fft_topleft_y + ((1 - amplitude) * fft_height),
+			fft_bar_width, amplitude * fft_height)
+			.attr({stroke: 'yellow', fill: 'yellow'});
+
+		fft_active_bars.push(bar_rect);
+	}
+}
+
 var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_width, frequency_height, 10)
 	.attr({stroke: face_stroke, fill: face_fill});
 
@@ -260,7 +312,7 @@ var bumpup = paper.path([
 	.click(function(e) {
 		e.stopPropagation();
 		e.preventDefault();
-		incrementFrequency(100);
+		incrementFrequency(frequency_increment);
 	});
 
 var bumpdown = paper.path([
@@ -271,7 +323,7 @@ var bumpdown = paper.path([
 	.click(function(e) {
 		e.stopPropagation();
 		e.preventDefault();
-		incrementFrequency(-100);
+		incrementFrequency(-frequency_increment);
 	});
 
 var freqtext = paper.text(frequency_topleft_x + frequency_width/2, 
