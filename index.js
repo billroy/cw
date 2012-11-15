@@ -12,8 +12,9 @@ if (argv.help) {
 } 
 
 var port;
-if (process && process.env && process.env.PORT) port = process.env.PORT;
-else port = argv.port | 3000;
+if (argv.port) port = argv.port;
+else if (process && process.env && process.env.PORT) port = process.env.PORT;
+else port = 3000;
 
 var express = require('express');
 var app = module.exports = express.createServer().listen(port);
