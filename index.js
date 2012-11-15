@@ -1,7 +1,19 @@
 
+
+var opt = require('optimist');
+var argv = opt.usage('Usage: $0 [flags]')
+	.alias('p', 'port')
+	.describe('p', 'port for the http server')
+	.argv;
+
+if (argv.help) {
+	opt.showHelp();
+	process.exit();
+} 
+
 var port;
 if (process && process.env && process.env.PORT) port = process.env.PORT;
-else port = 3000;
+else port = argv.port | 3000;
 
 var express = require('express');
 var app = module.exports = express.createServer().listen(port);

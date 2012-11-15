@@ -67,7 +67,7 @@ if (!local_mode) {
 	});
 	window.setInterval(function() {
 		socket.emit('ping', {'timestamp': new Date().getTime()});
-	}, 1000);
+	}, 10000);
 }
 
 function startTX(frequency) {
