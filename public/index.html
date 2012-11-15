@@ -42,8 +42,10 @@ function incrementFrequency(amount) {
 	}
 }
 
-if (!local_mode) {
-	var socket = io.connect();
+var socket;
+
+function initSocketIO() {
+	socket = io.connect();
 	console.log('Socket connected', socket);
 	window.setTimeout(function() {
 		connection_indicator.attr({fill: '#00ff00', stroke:'#00ff00'});
@@ -59,12 +61,16 @@ if (!local_mode) {
 		window.status = 'RTT: ' + rtt + 'ms';
 	});
 	socket.on('disconnect', function (data) {
-		connection_indicator.attr({stroke: 'darkgreen', fill: 'darkgreen'});
+		connection_indicator.attr({stroke: 'darkgreen', fill: 'darkgreen'});		
+		window.setTimeout(initSocketIO, 200);
 	});
 	window.setInterval(function() {
 		socket.emit('ping', {'timestamp': new Date().getTime()});
 	}, 10000);
 }
+
+if (!local_mode) initSocketIO();
+
 
 function startTX(frequency) {
 	if (!frequency) return;
@@ -262,13 +268,6 @@ var fft_numbars = 128;
 var fft_active_bars = [];
 var fft_bar_width = fft_width / fft_numbars;
 
-if (0) for (var b=0; b<fft_numbars; b++) {
-		fft_bars[b] = paper.rect(
-		fft_topleft_x + b * fft_bar_width,
-		fft_topleft_y, fft_bar_width, fft_height)
-		.attr({stroke: face_fill, fill: face_fill});
-}
-
 function updateFFT() {
 	while (fft_active_bars.length) fft_active_bars.pop().remove();
 
@@ -281,9 +280,10 @@ console.log('osc:', frequency);
 			amplitude = 1;
 		}
 		else {
+			frequency -= sidetone;
 			if (Math.abs(frequency) > fft_bandwidth/2) continue;
-			bar = (fft_numbars/2) + frequency * fft_numbars / (fft_bandwidth);
-			amplitude = 1;	//frequency / (fft_bandwidth/2);
+			bar = (fft_numbars/2) + fft_numbars * (frequency / fft_bandwidth);
+			amplitude = 1 - Math.abs(frequency / (fft_bandwidth/2));
 		}
 		bar = Math.floor(bar);
 
