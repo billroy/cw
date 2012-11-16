@@ -1,5 +1,10 @@
+//
+// index.js: run the morse server
+//
+//	Copyright 2012 Bill Roy (MIT License)
+//
 
-var Morse = require('morse');
+var Morse = require('./morseout.js');
 var opt = require('optimist');
 var argv = opt.usage('Usage: $0 [flags]')
 	.alias('p', 'port')

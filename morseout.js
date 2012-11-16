@@ -1,5 +1,8 @@
-
-
+//
+// morseout.js: morse transmission injector
+//
+//	Copyright 2012 Bill Roy (MIT License)
+//
 
 //////////
 //
@@ -38,24 +41,33 @@ m6codes = [
 ];
 
 // State machine states
-#define M_IDLE			0
-#define M_START_CHAR	1
-#define M_START_ELEMENT	2
-#define M_END_ELEMENT	3
-#define M_END_TX		4
+var M_IDLE			= 0;
+var M_START_CHAR	= 1;
+var M_START_ELEMENT	= 2;
+var M_END_ELEMENT	= 3;
+var M_END_TX		= 4;
 
 var DEFAULT_WPM = 10;
 var DEFAULT_SIDETONE = 440;
+var PTT_DELAY = 1000;
 
 function Morse(options) {
-	
+console.log(this);
+	this.init(options);
+}
+
+Morse.prototype = {
+
 	//////////
 	//
 	//	Morse buffer handling
 	//
-	var morsebuf = '';
+	morsebuf: '',
 
 	init: function(options) {
+
+console.log(this, options);
+
 		this.options = options;
 		this.frequency = options.frequency;
 		this.setwpm(options.wpm || DEFAULT_WPM);
@@ -64,8 +76,8 @@ function Morse(options) {
 		this.run();		// start the scheduler chain
 	},
 
-	morse_dit_ms: 0;
-	morse_dah_ms: 0;
+	morse_dit_ms: 0,
+	morse_dah_ms: 0,
 	setwpm: function(wpm) {
 		this.morse_dit_ms = Math.floor(1200/wpm);
 		this.morse_dah_ms = 3 * this.morse_dit_ms;
@@ -90,8 +102,8 @@ function Morse(options) {
 	//
 	//	Output messages
 	//
-	morseOn: function() {io.sockets.emit('startTX', this.frequency);}
-	morseOff: function() {io.sockets.emit('endTX', this.frequency);}
+	morseOn: function() {io.sockets.emit('startTX', this.frequency);},
+	morseOff: function() {io.sockets.emit('endTX', this.frequency);},
 	
 	//////////
 	//
@@ -108,7 +120,8 @@ function Morse(options) {
 	},
 		
 	run: function() {
-	
+
+console.log('run:', this.state, this);
 		switch (this.state) {
 	
 		case M_IDLE:
@@ -174,10 +187,10 @@ function Morse(options) {
 	}	
 }
 
-var m1 = new Morse().init({
-	frequency:7030000,
-	text: "CQCQCQ CQCQCQ CQCQCQ DE KTOX KTOX KTOX K',
+var m1 = new Morse({
+	frequency: 7030000,
+	text: 'CQCQCQ CQCQCQ CQCQCQ DE KTOX KTOX KTOX K',
 	repeat: true
 });
-
+console.log('Sending...');
 module.exports = Morse;
