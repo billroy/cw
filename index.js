@@ -50,9 +50,11 @@ io.sockets.on('connection', function (socket) {
 	});
 });
 
+if (0) {
 var m1 = new Morse.Morse(io, {
 	frequency: 7029000,
 	text: 'cqcqcq cqcqcq cqcqcq de w1aw w1aw w1aw k',
 	wpm: 15,
 	repeat: true
 });
+}
