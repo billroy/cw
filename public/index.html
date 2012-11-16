@@ -297,7 +297,7 @@ var rx_indicator_off = 'darkgreen';
 var tx_indicator_on = '#00ff00';
 var tx_indicator_off = 'darkgreen';
 
-var face_stroke = 'teal';
+var face_stroke = 'orange';
 var face_fill = 'black'
 var button_color = 'red';
 
@@ -312,7 +312,7 @@ var dsp_panel = paper.rect(dsp_topleft_x, dsp_topleft_y, dsp_width, dsp_height, 
 	.attr({stroke: face_stroke, fill: face_fill});
 
 var fft = paper.rect(fft_topleft_x, fft_topleft_y, fft_width, fft_height)
-	.attr({stroke: face_stroke, fill: face_fill});
+	.attr({stroke: face_stroke, fill: '0-#00f:5-#000:50-#00f:95'});
 
 var fft_bandwidth = 3000;
 var fft_numbars = 128;
