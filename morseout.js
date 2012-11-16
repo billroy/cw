@@ -145,15 +145,17 @@ Morse.prototype = {
 			}
 	
 			// mapping and filtering action
-			if ((this.morse_char >= 'a') && (this.morse_char <= 'z')) this.morse_char = this.morse_char - 'a' + 'A';
+			if ((this.morse_char >= 'a') && (this.morse_char <= 'z')) {
+				this.morse_char = String.fromCharCode(this.morse_char.charCodeAt(0) - 'a'.charCodeAt(0) + 'A'.charCodeAt(0));
+
+console.log('lc:', this.morse_char);
+
+			}
 			if ((this.morse_char < ' ') || (this.morse_char > '_')) break;    // ignore bogus 7-bit and all 8-bit
 	
 			// decode morse pattern from morsetab into morse_data and morse_mask
 			this.morse_data = morsetab[this.morse_char.charCodeAt(0) - ' '.charCodeAt(0)];
 			this.morse_mask = (this.morse_data >> 5) & 7;		// get # elts or 0 for special table
-
-console.log('char1:', this.morse_char, this.morse_data, this.morse_mask);
-
 			if (!this.morse_mask) {
 				this.morse_mask = 1 << (6-1);			// specials are 6 elts long
 				this.morse_data = m6codes[this.morse_data];
@@ -162,9 +164,6 @@ console.log('char1:', this.morse_char, this.morse_data, this.morse_mask);
 				this.morse_mask = 1 << (this.morse_mask - 1);	// convert # elts to one-bit mask
 				this.morse_data &= 0x1f;
 			}
-
-console.log('char2:', this.morse_char, this.morse_data, this.morse_mask);
-
 			this.nextState(M_START_ELEMENT, 0);
 			break;
 	

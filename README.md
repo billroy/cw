@@ -20,6 +20,8 @@
 - fft: label with frequencies
 - fft: click to set frequency
 
+- waterfall pixels aren't perfect length
+
 - sidetone control 300-900 step 50	
 
 - mute
