@@ -31,6 +31,12 @@ function localFrequency(f) {
 }
 
 function setFrequency(newfreq) {
+//	if (typeof newfreq == 'number') {
+//		var df = newfreq - rx_frequency;
+//		for (var f in oscillators) {
+//			oscillators[f].frequency += df;
+//		}
+//	}
 	rx_frequency = newfreq;
 	tx_frequency = newfreq;
 	freqtext.attr({text: '' + rx_frequency});
@@ -92,7 +98,8 @@ function startTX(frequency) {
 		oscillators[frequency] = {
 			osc: osc,
 			users: 1,
-			frequency: frequency
+			frequency: frequency,
+			started: new Date().getTime()
 		}
 	}
 	updateFFT();
@@ -120,22 +127,35 @@ function endTX(frequency) {
 	updateFFT();
 }
 
+function harvestOscillators() {
+	var now = new Date().getTime();
+	for (var p in oscillators) {
+		if ((now - oscillators[p].started) > 5000) {
+			oscillators.p[osc].noteOff(0);
+			delete oscillators[p];
+		}
+	}
+}
+setInterval(harvestOscillators, 1000);
+
+var packet_count = 0;
+
 function start_element() {
 	tx_indicator.attr({fill: tx_indicator_on, stroke: tx_indicator_on});
 	//txbutton.attr({'stroke-width': button_stroke_tx_on});
 	txtext.attr({text: 'ON AIR'});
 	if (local_mode) startTX(sidetone);
-	else socket.emit('startTX', {'frequency': tx_frequency});
+	else socket.emit('startTX', {'frequency': tx_frequency, 'count': ++packet_count});
 }
 function end_element() {
 	tx_indicator.attr({fill: tx_indicator_off, stroke: tx_indicator_off});
 	//txbutton.attr({'stroke-width': button_stroke_tx_off});
 	txtext.attr({text: button_text});
 	if (local_mode) endTX(sidetone);
-	else socket.emit('endTX', {'frequency': tx_frequency});
+	else socket.emit('endTX', {'frequency': tx_frequency, 'count': ++packet_count});
 }
 
-var wpm = 10;
+var wpm = 15;
 var dit_time = Math.floor(1200/wpm);
 var dah_time = 3 * dit_time;
 
@@ -202,6 +222,12 @@ k.down(['alt'], function() {		// iambic dit key
 
 k.down('up', function() {incrementFrequency(frequency_increment);});
 k.down('down', function() {incrementFrequency(-frequency_increment);});
+k.down('y', function() {
+	var text = prompt('Enter text:', '');
+	if (text) {
+		socket.emit('send', {frequency: tx_frequency, text: text, wpm: wpm});
+	}
+});
 
 var face_width = 1 * $(window).width();
 var face_height = 1 * $(window).height();

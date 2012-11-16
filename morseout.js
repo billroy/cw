@@ -47,7 +47,7 @@ var M_START_ELEMENT	= 2;
 var M_END_ELEMENT	= 3;
 var M_END_TX		= 4;
 
-var DEFAULT_WPM = 5;
+var DEFAULT_WPM = 15;
 var DEFAULT_SIDETONE = 440;
 var PTT_DELAY = 1000;
 
@@ -147,9 +147,6 @@ Morse.prototype = {
 			// mapping and filtering action
 			if ((this.morse_char >= 'a') && (this.morse_char <= 'z')) {
 				this.morse_char = String.fromCharCode(this.morse_char.charCodeAt(0) - 'a'.charCodeAt(0) + 'A'.charCodeAt(0));
-
-console.log('lc:', this.morse_char);
-
 			}
 			if ((this.morse_char < ' ') || (this.morse_char > '_')) break;    // ignore bogus 7-bit and all 8-bit
 	

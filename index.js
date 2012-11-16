@@ -24,6 +24,7 @@ else port = 3000;
 var express = require('express');
 var app = module.exports = express.createServer().listen(port);
 var io = require('socket.io').listen(app);
+var request = require('request');
 
 app.configure(function () {
 	app.use(express.logger());
@@ -43,6 +44,26 @@ io.sockets.on('connection', function (socket) {
 	socket.on('endTX', function (data) {
 		console.log('endTX:', data);
 		io.sockets.emit('endTX', data);
+	});
+	socket.on('send', function (data) {
+		console.log('send:', data);
+		if (data.text && data.text.match(/^http|https\:\/\//)) {
+			request(data.text, function (error, response, body) {
+				if (error || response.statusCode != 200 || !body) {
+					console.log('Request error:');
+					console.log(error);
+					if (response) console.log(response.statusCode);
+					if (body) console.log(body.length);
+					return;
+				}
+				data.text = response.body;
+console.log('Body:', data);
+				new Morse.Morse(io, data);
+			});
+		}
+		else {
+			new Morse.Morse(io, data);
+		}
 	});
 	socket.on('ping', function(data) {
 		console.log('ping', data);
