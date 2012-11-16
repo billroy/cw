@@ -38,7 +38,12 @@ function setFrequency(newfreq) {
 	stopAllOscillators();
 	rx_frequency = newfreq;
 	tx_frequency = newfreq;
+	min_display_frequency = rx_frequency - display_bandwidth/2;
+	max_display_frequency = rx_frequency + display_bandwidth/2;
 	freqtext.attr({text: '' + rx_frequency});
+	fft_left_label_text.attr({text: '' + min_display_frequency});
+	fft_center_label_text.attr({text: '' + rx_frequency});
+	fft_right_label_text.attr({text: '' + max_display_frequency});
 }
 
 function incrementFrequency(amount) {

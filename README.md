@@ -40,14 +40,15 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 ### TODO:
 
 - click to tune
-	- click in fft or waterfall to tune
 	- bring clicked frequency to center
+
 	- tuning should shift waterfall pixels left/right and prune
 	- center frequency marker
-	- fft: label with frequencies
 	- fft: click to set frequency
 
 	- BUG: tuning orphans any running oscillators
+
+- garbage collect Morse.Morse instances on server?
 
 - BUG: waterfall pixels aren't perfect length
 
