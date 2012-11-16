@@ -110,6 +110,9 @@ function endTX(frequency) {
 	if (!oscillators[frequency]) return;
 	if (oscillators[frequency].users <= 1) {
 		oscillators[frequency].osc.noteOff(0);
+		if (oscillators[frequency].waterfall_block) {
+			waterfall_blocks.push(oscillators[frequency].waterfall_block);
+		}
 		delete oscillators[frequency];
 	} else {
 		--oscillators[frequency].users;
@@ -314,14 +317,18 @@ function updateFFT() {
 			fft_bar_width, amplitude * fft_height)
 			.attr({stroke: fft_bar_color, fill: fft_bar_color});
 		fft_active_bars.push(bar_rect);
-		addWaterfallBlock(x);
+
+		if (!oscillators[f].waterfall_block) {
+			oscillators[f].waterfall_block = paper.rect(x, waterfall_topleft_y, fft_bar_width, 1)
+			.attr({stroke: fft_bar_color, fill: fft_bar_color});
+		}
 	}
 }
 
 var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height)
 	.attr({stroke: face_stroke, fill: face_fill});
 
-var waterfall_pixels = [];
+var waterfall_blocks = [];
 var waterfall_y_increment = fft_bar_width;
 
 function addWaterfallBlock(x) {
@@ -332,16 +339,22 @@ function addWaterfallBlock(x) {
 
 function updateWaterfall() {
 	var p = 0;
-	while (p<waterfall_pixels.length) {
-		var newy = parseInt(waterfall_pixels[p].attr('y')) + waterfall_y_increment;
-		if (newy + fft_bar_width > waterfall_topleft_y + waterfall_height) {
-			waterfall_pixels[p].remove();
-			waterfall_pixels.splice(p,1);
+	while (p<waterfall_blocks.length) {
+		var newy = parseInt(waterfall_blocks[p].attr('y')) + waterfall_y_increment;
+		if (newy + waterfall_blocks[p].attr('height') > waterfall_topleft_y + waterfall_height) {
+			waterfall_blocks[p].remove();
+			waterfall_blocks.splice(p,1);
 		}
-		else waterfall_pixels[p++].attr({y: newy});
+		else waterfall_blocks[p++].attr({y: newy});
+	}
+	for (var f in oscillators) {
+		if (oscillators[f].waterfall_block) {
+			var newheight = parseInt(oscillators[f].waterfall_block.attr('height')) + waterfall_y_increment;
+			oscillators[f].waterfall_block.attr({height: newheight});
+		}
 	}
 }
-window.setInterval(updateWaterfall, 100);
+window.setInterval(updateWaterfall, 50);
 
 
 var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_width, frequency_height, 10)
