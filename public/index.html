@@ -119,11 +119,15 @@ function endTX(frequency) {
 
 function start_element() {
 	tx_indicator.attr({fill: tx_indicator_on, stroke: tx_indicator_on});
+	//txbutton.attr({'stroke-width': button_stroke_tx_on});
+	txtext.attr({text: 'ON AIR'});
 	if (local_mode) startTX(sidetone);
 	else socket.emit('startTX', {'frequency': tx_frequency});
 }
 function end_element() {
 	tx_indicator.attr({fill: tx_indicator_off, stroke: tx_indicator_off});
+	//txbutton.attr({'stroke-width': button_stroke_tx_off});
+	txtext.attr({text: button_text});
 	if (local_mode) endTX(sidetone);
 	else socket.emit('endTX', {'frequency': tx_frequency});
 }
@@ -192,21 +196,30 @@ k.down(['alt'], function() {		// iambic dit key
 	return false;
 });
 
+
+k.down('up', function() {incrementFrequency(frequency_increment);});
+k.down('down', function() {incrementFrequency(-frequency_increment);});
+
 var face_width = 1 * $(window).width();
 var face_height = 1 * $(window).height();
 var face_topleft_x = ($(window).width() - face_width)/2;
 var face_topleft_y = ($(window).height() - face_height)/2;
 
-var waterfall_width = .4 * face_width;
-var waterfall_height = .9 * face_height;
-var waterfall_topleft_x = face_topleft_x + .05 * face_width;
-var waterfall_topleft_y = face_topleft_y + .05 * face_height;
+var dsp_width = .4 * face_width;
+var dsp_height = .9 * face_height;
+var dsp_topleft_x = face_topleft_x + .05 * face_width;
+var dsp_topleft_y = face_topleft_y + .05 * face_height;
 
-var fft_width = .9 * waterfall_width;
-var fft_height = .1 * waterfall_height;
-var fft_margin = (waterfall_width - fft_width)/2;
-var fft_topleft_x = waterfall_topleft_x + fft_margin;
-var fft_topleft_y = waterfall_topleft_y + fft_margin;
+var fft_width = .9 * dsp_width;
+var fft_height = .1 * dsp_height;
+var fft_margin = (dsp_width - fft_width)/2;
+var fft_topleft_x = dsp_topleft_x + fft_margin;
+var fft_topleft_y = dsp_topleft_y + fft_margin;
+
+var waterfall_width = fft_width;
+var waterfall_topleft_x = fft_topleft_x;
+var waterfall_topleft_y = fft_topleft_y + fft_height;
+var waterfall_height = (dsp_topleft_y + dsp_height - fft_margin) - waterfall_topleft_y;
 
 console.log('FFT:', fft_width, fft_height, fft_topleft_x, fft_topleft_y);
 
@@ -237,16 +250,25 @@ var rx_indicator_y = face_topleft_y + .2 * face_height;
 //var knob_topleft_x = knob_center_x - (knob_radius/2);
 //var knob_topleft_y = knob_center_y - (knob_radius/2);
 
-var tx_button_radius = .08 * face_width;
-var tx_button_center_x = face_topleft_x + (.85 * face_width) - (tx_button_radius/2);
-var tx_button_center_y = face_topleft_y + (.8 * face_height) - (tx_button_radius/2);
+//var tx_button_radius = .08 * face_width;
+//var tx_button_center_x = face_topleft_x + (.85 * face_width) - (tx_button_radius/2);
+//var tx_button_center_y = face_topleft_y + (.8 * face_height) - (tx_button_radius/2);
+
+var tx_button_width = frequency_width; 
+var tx_button_x = frequency_topleft_x;
+var tx_button_y = frequency_topleft_y + .8 * waterfall_height;
+var tx_button_height = (waterfall_topleft_y + waterfall_height) - tx_button_y;
+
+var button_stroke_tx_on = 20;
+var button_stroke_tx_off = 10;
+var button_text = 'TX';
 
 var rx_indicator_on = '#00ff00';
 var rx_indicator_off = 'darkgreen';
 var tx_indicator_on = '#00ff00';
 var tx_indicator_off = 'darkgreen';
 
-var face_stroke = 'seagreen';
+var face_stroke = 'orange';
 var face_fill = 'black'
 var button_color = 'red';
 
@@ -257,7 +279,7 @@ var paper = Raphael(0, 0, $(window).width(), $(window).height());
 var face = paper.rect(face_topleft_x, face_topleft_y, face_width, face_height, 20)
 	.attr({stroke: face_stroke, fill: face_fill, 'stroke-width': 10});
 
-var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height, interior_corner_radius)
+var dsp_panel = paper.rect(dsp_topleft_x, dsp_topleft_y, dsp_width, dsp_height, interior_corner_radius)
 	.attr({stroke: face_stroke, fill: face_fill});
 
 var fft = paper.rect(fft_topleft_x, fft_topleft_y, fft_width, fft_height)
@@ -267,6 +289,7 @@ var fft_bandwidth = 3000;
 var fft_numbars = 128;
 var fft_active_bars = [];
 var fft_bar_width = fft_width / fft_numbars;
+var fft_bar_color = 'yellow';
 
 function updateFFT() {
 	while (fft_active_bars.length) fft_active_bars.pop().remove();
@@ -274,7 +297,6 @@ function updateFFT() {
 	var frequency, bar, amplitude;
 	for (var f in oscillators) {
 		frequency = oscillators[f].frequency;
-console.log('osc:', frequency);
 		if (typeof frequency != 'number') {
 			bar = fft_numbars/2;
 			amplitude = 1;
@@ -285,19 +307,42 @@ console.log('osc:', frequency);
 			bar = (fft_numbars/2) + fft_numbars * (frequency / fft_bandwidth);
 			amplitude = 1 - Math.abs(frequency / (fft_bandwidth/2));
 		}
-		bar = Math.floor(bar);
-
-console.log('Bar:', bar, amplitude, frequency);
-
-		var bar_rect = paper.rect(
-			fft_topleft_x + (bar * fft_bar_width),
-			fft_topleft_y + ((1 - amplitude) * fft_height),
+		//bar = Math.floor(bar);
+		var x = fft_topleft_x + (bar * fft_bar_width);
+		var y = fft_topleft_y + ((1 - amplitude) * fft_height);
+		var bar_rect = paper.rect(x, y, 
 			fft_bar_width, amplitude * fft_height)
-			.attr({stroke: 'yellow', fill: 'yellow'});
-
+			.attr({stroke: fft_bar_color, fill: fft_bar_color});
 		fft_active_bars.push(bar_rect);
+		addWaterfallBlock(x);
 	}
 }
+
+var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height)
+	.attr({stroke: face_stroke, fill: face_fill});
+
+var waterfall_pixels = [];
+var waterfall_y_increment = fft_bar_width;
+
+function addWaterfallBlock(x) {
+	var block = paper.rect(x, waterfall_topleft_y, fft_bar_width, fft_bar_width)
+			.attr({stroke: fft_bar_color, fill: fft_bar_color});
+	waterfall_pixels.push(block);
+}
+
+function updateWaterfall() {
+	var p = 0;
+	while (p<waterfall_pixels.length) {
+		var newy = parseInt(waterfall_pixels[p].attr('y')) + waterfall_y_increment;
+		if (newy + fft_bar_width > waterfall_topleft_y + waterfall_height) {
+			waterfall_pixels[p].remove();
+			waterfall_pixels.splice(p,1);
+		}
+		else waterfall_pixels[p++].attr({y: newy});
+	}
+}
+window.setInterval(updateWaterfall, 100);
+
 
 var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_width, frequency_height, 10)
 	.attr({stroke: face_stroke, fill: face_fill});
@@ -326,12 +371,15 @@ var bumpdown = paper.path([
 		incrementFrequency(-frequency_increment);
 	});
 
+
+
 var freqtext = paper.text(frequency_topleft_x + frequency_width/2, 
 		frequency_topleft_y + frequency_height/2, ''+rx_frequency)
 	.attr({'font-size':60, stroke: face_stroke, fill:face_stroke})
 	.click(function() {
 		var newfreq = prompt('Enter frequency:', '' + rx_frequency);
 		if (newfreq) {
+			if (newfreq.match(/^\d+$/)) newfreq = parseInt(newfreq);
 			rx_frequency = newfreq;
 			tx_frequency = newfreq;
 			freqtext.attr({'text': newfreq});
@@ -359,8 +407,8 @@ var rx_indicator_legend = paper.text(rx_indicator_x + (rx_indicator_width/2),
 //var freqknob = paper.circle(knob_center_x, knob_center_y, knob_radius)
 //	.attr({stroke: face_stroke, fill: face_fill});
 
-var txknob = paper.circle(tx_button_center_x, tx_button_center_y, tx_button_radius)
-	.attr({stroke: button_color, fill: button_color})
+var txbutton = paper.rect(tx_button_x, tx_button_y, tx_button_width, tx_button_height, 20)
+	.attr({stroke: button_color, fill: face_fill, 'stroke-width': button_stroke_tx_off})
 	.mousedown(function(e) {
 		start_element();
 		e.stopPropagation();
@@ -391,8 +439,8 @@ var txknob = paper.circle(tx_button_center_x, tx_button_center_y, tx_button_radi
 		return false;
 	});
 
-var txtext = paper.text(tx_button_center_x, tx_button_center_y, 'TX')
-	.attr({'font-size':40, stroke: 'black', fill:'black'})
+var txtext = paper.text(tx_button_x + tx_button_width/2, tx_button_y + tx_button_height/2, 'TX')
+	.attr({'font-size':40, stroke: button_color, fill: button_color})
 	.mousedown(function(e) {
 		start_element();
 		e.preventDefault();

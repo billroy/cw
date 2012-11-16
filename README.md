@@ -13,8 +13,13 @@
 - BUG: 300 ms wait time on iPad makes it hard to send
 - BUG: Oscillators get stuck ON.  perhaps self-expire stuck oscillators?
 
-- FFT display
-- attenuate signals per bandpass filter/freq delta
+- BUG: change frequency: all running oscillators are stuck
+	- adjust or kill them
+
+- fft: show bandwidth
+- fft: label with frequencies
+- fft: click to set frequency
+
 - sidetone control 300-900 step 50	
 
 - button board
