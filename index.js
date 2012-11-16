@@ -1,5 +1,5 @@
 
-
+var Morse = require('morse');
 var opt = require('optimist');
 var argv = opt.usage('Usage: $0 [flags]')
 	.alias('p', 'port')

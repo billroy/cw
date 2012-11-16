@@ -30,8 +30,6 @@
 	- play from server?
 
 - color picker
-- waterfall display
-- highlight the key when it's down
 - band pass control
 - url query string -> frequency
 - wpm control for iambic
