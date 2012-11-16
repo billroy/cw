@@ -47,12 +47,13 @@ var M_START_ELEMENT	= 2;
 var M_END_ELEMENT	= 3;
 var M_END_TX		= 4;
 
-var DEFAULT_WPM = 10;
+var DEFAULT_WPM = 5;
 var DEFAULT_SIDETONE = 440;
 var PTT_DELAY = 1000;
 
-function Morse(options) {
-console.log(this);
+function Morse(io, options) {
+	console.log('Init:', options);
+	this.io = io;
 	this.init(options);
 }
 
@@ -65,9 +66,6 @@ Morse.prototype = {
 	morsebuf: '',
 
 	init: function(options) {
-
-console.log(this, options);
-
 		this.options = options;
 		this.frequency = options.frequency;
 		this.setwpm(options.wpm || DEFAULT_WPM);
@@ -78,9 +76,11 @@ console.log(this, options);
 
 	morse_dit_ms: 0,
 	morse_dah_ms: 0,
+
 	setwpm: function(wpm) {
 		this.morse_dit_ms = Math.floor(1200/wpm);
 		this.morse_dah_ms = 3 * this.morse_dit_ms;
+		console.log('dit:', this.morse_dit_ms, ' dah:', this.morse_dah_ms);
 	},
 
 	morseAvailable: function() {
@@ -89,8 +89,9 @@ console.log(this, options);
 
 	morseGet: function() {
 		if (!this.morseAvailable()) return '?';
-		var retval = this.morsebuf[0];
-		this.morsebuf = this.morsebuf.substr(1, morsebuf.length);
+		var retchar = this.morsebuf[0];
+		this.morsebuf = this.morsebuf.substr(1, this.morsebuf.length);
+		return retchar;
 	},
 	
 	morsePut: function(string) {
@@ -102,8 +103,8 @@ console.log(this, options);
 	//
 	//	Output messages
 	//
-	morseOn: function() {io.sockets.emit('startTX', this.frequency);},
-	morseOff: function() {io.sockets.emit('endTX', this.frequency);},
+	morseOn: function() {this.io.sockets.emit('startTX', {frequency: this.frequency});},
+	morseOff: function() {this.io.sockets.emit('endTX', {frequency: this.frequency});},
 	
 	//////////
 	//
@@ -116,12 +117,11 @@ console.log(this, options);
 		
 	nextState: function(state, dt) {
 		this.state = state;
-		setInterval(this.run, dt);
+		var self = this;
+		setTimeout(function() {self.run();}, dt);
 	},
 		
 	run: function() {
-
-console.log('run:', this.state, this);
 		switch (this.state) {
 	
 		case M_IDLE:
@@ -140,7 +140,7 @@ console.log('run:', this.state, this);
 			this.morse_char = this.morseGet();
 	
 			if (this.morse_char == ' ') { 		// wordspace
-				this.nextState(M_START_CHAR, 6 * morse_dit_ms);
+				this.nextState(M_START_CHAR, 6 * this.morse_dit_ms);
 				break;
 			}
 	
@@ -149,8 +149,11 @@ console.log('run:', this.state, this);
 			if ((this.morse_char < ' ') || (this.morse_char > '_')) break;    // ignore bogus 7-bit and all 8-bit
 	
 			// decode morse pattern from morsetab into morse_data and morse_mask
-			this.morse_data = morsetab[this.morse_char - ' '];
+			this.morse_data = morsetab[this.morse_char.charCodeAt(0) - ' '.charCodeAt(0)];
 			this.morse_mask = (this.morse_data >> 5) & 7;		// get # elts or 0 for special table
+
+console.log('char1:', this.morse_char, this.morse_data, this.morse_mask);
+
 			if (!this.morse_mask) {
 				this.morse_mask = 1 << (6-1);			// specials are 6 elts long
 				this.morse_data = m6codes[this.morse_data];
@@ -159,12 +162,15 @@ console.log('run:', this.state, this);
 				this.morse_mask = 1 << (this.morse_mask - 1);	// convert # elts to one-bit mask
 				this.morse_data &= 0x1f;
 			}
+
+console.log('char2:', this.morse_char, this.morse_data, this.morse_mask);
+
 			this.nextState(M_START_ELEMENT, 0);
 			break;
 	
 		case M_START_ELEMENT:
 			if (!this.morse_mask) {	// ran out of elements
-				this.nextState(M_START_CHAR, 2 * morse_dit_ms);		// character space
+				this.nextState(M_START_CHAR, 2 * this.morse_dit_ms);		// character space
 				break;
 			}
 			this.morseOn();
@@ -175,7 +181,7 @@ console.log('run:', this.state, this);
 	
 		case M_END_ELEMENT:
 			this.morseOff();
-			this.nextState(M_START_ELEMENT, morse_dit_ms);
+			this.nextState(M_START_ELEMENT, this.morse_dit_ms);
 			break;
 	
 		case M_END_TX:
@@ -183,14 +189,8 @@ console.log('run:', this.state, this);
 			if (this.repeat) this.morsePut(this.options.text);
 			this.nextState(M_IDLE, 1000);	// could add tail delay here
 			break;
-		}
-	}	
-}
+		}	// switch
+	}	// run
+}	// Morse.prototype
 
-var m1 = new Morse({
-	frequency: 7030000,
-	text: 'CQCQCQ CQCQCQ CQCQCQ DE KTOX KTOX KTOX K',
-	repeat: true
-});
-console.log('Sending...');
-module.exports = Morse;
+module.exports.Morse = Morse;

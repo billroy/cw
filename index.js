@@ -49,3 +49,10 @@ io.sockets.on('connection', function (socket) {
 		socket.emit('pong', data);
 	});
 });
+
+var m1 = new Morse.Morse(io, {
+	frequency: 7030000,
+	text: 'CQ CQ CQ',	// CQCQCQ CQCQCQ DE KTOX KTOX KTOX K',
+	wpm: 15,
+	repeat: true
+});

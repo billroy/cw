@@ -22,6 +22,8 @@
 
 - sidetone control 300-900 step 50	
 
+- mute
+
 - button board
 - programmable feeds
 	- frequency
