@@ -14,29 +14,28 @@ var context = new webkitAudioContext();		//webkit browsers only
 
 var local_mode = false;
 
-var min_frequency = 7025000;
-var max_frequency = 7125000;
-var min_bandpass = 200;
-var max_bandpass = 2000;
 var rx_frequency = 7030000;		// start out rockbound
 var tx_frequency = 7030000;
+
+var display_bandwidth = 50000;
+var min_display_frequency = rx_frequency - display_bandwidth/2;
+var max_display_frequency = rx_frequency + display_bandwidth/2
+
+var audio_min_bandpass = 200;
+var audio_max_bandpass = 2000;
+
 var frequency_increment = 10;
 var sidetone = 440;
 
 var oscillators = {};
 
-function localFrequency(f) {
-	if (typeof f === 'number') return f - rx_frequency + sidetone;
-	return f;
-}
+//function localFrequency(f) {
+//	if (typeof f === 'number') return f - rx_frequency + sidetone;
+//	return f;
+//}
 
 function setFrequency(newfreq) {
-//	if (typeof newfreq == 'number') {
-//		var df = newfreq - rx_frequency;
-//		for (var f in oscillators) {
-//			oscillators[f].frequency += df;
-//		}
-//	}
+	stopAllOscillators();
 	rx_frequency = newfreq;
 	tx_frequency = newfreq;
 	freqtext.attr({text: '' + rx_frequency});
@@ -57,10 +56,10 @@ function initSocketIO() {
 		connection_indicator.attr({fill: '#00ff00', stroke:'#00ff00'});
 	}, 500);
 	socket.on('startTX', function (data) {
-		startTX(localFrequency(data.frequency));
+		startTX(data);
 	});
 	socket.on('endTX', function (data) {
-		endTX(localFrequency(data.frequency));
+		endTX(data);
 	});
 	socket.on('pong', function(data) {
 		var rtt = new Date().getTime() - data.timestamp;
@@ -78,45 +77,45 @@ function initSocketIO() {
 if (!local_mode) initSocketIO();
 
 
-function startTX(frequency) {
-	if (!frequency) return;
+function startTX(data) {
+	if (!data || !data.frequency) return;
+	var audio_frequency;
+	var frequency = data.frequency;
+	
 	if (typeof frequency != 'number') {
 		if (frequency != rx_frequency) return;
-		frequency = sidetone;
+		audio_frequency = sidetone;
 	}
-	else if ((frequency < min_bandpass) || (frequency > max_bandpass)) return;
-	rx_indicator.attr({fill: rx_indicator_on, stroke: rx_indicator_on});
-
+	else audio_frequency = frequency - rx_frequency + sidetone;
+	
 	if (oscillators[frequency] != undefined) {
 		++oscillators[frequency].users;
 	} else {
-		osc = context.createOscillator();
-		osc.type = 0;
-		osc.frequency.value = frequency;
-		osc.connect(context.destination);
-		osc.noteOn(0);
 		oscillators[frequency] = {
-			osc: osc,
 			users: 1,
 			frequency: frequency,
-			started: new Date().getTime()
+			audio_frequency: audio_frequency
+		}
+		if ((audio_frequency >= audio_min_bandpass) && (audio_frequency <= audio_max_bandpass)) {
+			osc = context.createOscillator();
+			osc.type = 0;
+			osc.frequency.value = audio_frequency;
+			osc.connect(context.destination);
+			osc.noteOn(0);
+			oscillators[frequency].osc = osc;
 		}
 	}
+	rx_indicator.attr({fill: rx_indicator_on, stroke: rx_indicator_on});
 	updateFFT();
 }
 
-function endTX(frequency) {
-	if (!frequency) return;
-	if (typeof frequency != 'number') {
-		if (frequency != rx_frequency) return;
-		frequency = sidetone;
-	}
-	else if ((frequency < min_bandpass) || (frequency > max_bandpass)) return;
-	rx_indicator.attr({fill: rx_indicator_off, stroke: rx_indicator_off});
-
+function endTX(data) {
+	if (!data || !data.frequency) return;
+	var frequency = data.frequency;
 	if (!oscillators[frequency]) return;
+
 	if (oscillators[frequency].users <= 1) {
-		oscillators[frequency].osc.noteOff(0);
+		if (oscillators[frequency].osc) oscillators[frequency].osc.noteOff(0);
 		if (oscillators[frequency].waterfall_block) {
 			waterfall_blocks.push(oscillators[frequency].waterfall_block);
 		}
@@ -124,35 +123,31 @@ function endTX(frequency) {
 	} else {
 		--oscillators[frequency].users;
 	}
+	rx_indicator.attr({fill: rx_indicator_off, stroke: rx_indicator_off});
 	updateFFT();
 }
 
-function harvestOscillators() {
-	var now = new Date().getTime();
+function stopAllOscillators() {
 	for (var p in oscillators) {
-		if ((now - oscillators[p].started) > 5000) {
-			oscillators.p[osc].noteOff(0);
-			delete oscillators[p];
-		}
+		if (oscillators[p].osc) oscillators[p].osc.noteOff(0);
+		if (oscillators[p].waterfall_block) oscillators[p].waterfall_block.remove();
+		delete oscillators[p];
 	}
 }
-setInterval(harvestOscillators, 1000);
-
-var packet_count = 0;
 
 function start_element() {
 	tx_indicator.attr({fill: tx_indicator_on, stroke: tx_indicator_on});
 	//txbutton.attr({'stroke-width': button_stroke_tx_on});
 	txtext.attr({text: 'ON AIR'});
-	if (local_mode) startTX(sidetone);
-	else socket.emit('startTX', {'frequency': tx_frequency, 'count': ++packet_count});
+	if (local_mode) startTX({frequency: sidetone});
+	else socket.emit('startTX', {'frequency': tx_frequency});
 }
 function end_element() {
 	tx_indicator.attr({fill: tx_indicator_off, stroke: tx_indicator_off});
 	//txbutton.attr({'stroke-width': button_stroke_tx_off});
 	txtext.attr({text: button_text});
-	if (local_mode) endTX(sidetone);
-	else socket.emit('endTX', {'frequency': tx_frequency, 'count': ++packet_count});
+	if (local_mode) endTX({frequency: sidetone});
+	else socket.emit('endTX', {'frequency': tx_frequency});
 }
 
 var wpm = 15;
@@ -245,6 +240,12 @@ var fft_margin = (dsp_width - fft_width)/2;
 var fft_topleft_x = dsp_topleft_x + fft_margin;
 var fft_topleft_y = dsp_topleft_y + fft_margin;
 
+var fft_center_label_x = fft_topleft_x + dsp_width/2;
+var fft_left_label_x = fft_topleft_x + .05 * dsp_width;
+var fft_right_label_x = fft_topleft_x + .85 * dsp_width;
+var fft_center_label_y = fft_topleft_y + fft_height + .025 * dsp_height;
+var fft_label_size = 16;
+
 var waterfall_width = fft_width;
 var waterfall_topleft_x = fft_topleft_x;
 var waterfall_topleft_y = fft_topleft_y + fft_height + .05 * dsp_height;
@@ -312,9 +313,27 @@ var dsp_panel = paper.rect(dsp_topleft_x, dsp_topleft_y, dsp_width, dsp_height, 
 	.attr({stroke: face_stroke, fill: face_fill});
 
 var fft = paper.rect(fft_topleft_x, fft_topleft_y, fft_width, fft_height)
-	.attr({stroke: face_stroke, fill: '0-#00f:5-#000:50-#00f:95'});
+	.attr({stroke: face_stroke, fill: '0-#00f:5-#000:50-#00f:95'})
+	.click(setFrequencyFromClick);
 
-var fft_bandwidth = 3000;
+var fft_center_label_text = paper.text(fft_center_label_x, fft_center_label_y, ''+rx_frequency)
+	.attr({'font-size': fft_label_size, stroke: face_stroke, fill:face_stroke});
+
+var fft_left_label_text = paper.text(fft_left_label_x, fft_center_label_y, ''+min_display_frequency)
+	.attr({'font-size': fft_label_size, stroke: face_stroke, fill:face_stroke});
+
+var fft_right_label_text = paper.text(fft_right_label_x, fft_center_label_y, ''+max_display_frequency)
+	.attr({'font-size': fft_label_size, stroke: face_stroke, fill:face_stroke});
+
+function setFrequencyFromClick(e) {
+	var frac_x = (e.pageX - fft_topleft_x) / fft_width;
+	var newfreq = Math.floor(min_display_frequency + frac_x * (display_bandwidth));
+
+	console.log('click:', e, frac_x, newfreq);
+
+	setFrequency(newfreq);
+}
+
 var fft_numbars = 128;
 var fft_active_bars = [];
 var fft_bar_width = fft_width / fft_numbars;
@@ -322,19 +341,25 @@ var fft_bar_color = 'yellow';
 
 function updateFFT() {
 	while (fft_active_bars.length) fft_active_bars.pop().remove();
-
+console.log('update');
 	var frequency, bar, amplitude;
 	for (var f in oscillators) {
 		frequency = oscillators[f].frequency;
+console.log('freq:', f, oscillators[f], frequency, typeof frequency);
 		if (typeof frequency != 'number') {
 			bar = fft_numbars/2;
 			amplitude = 1;
+console.log('bar2:', bar, amplitude);
 		}
 		else {
-			frequency -= sidetone;
-			if (Math.abs(frequency) > fft_bandwidth/2) continue;
-			bar = (fft_numbars/2) + fft_numbars * (frequency / fft_bandwidth);
-			amplitude = 1 - Math.abs(frequency / (fft_bandwidth/2));
+console.log('bar11');
+
+			if ((frequency < min_display_frequency) || (frequency > max_display_frequency)) continue;
+
+
+			bar = fft_numbars * (frequency - min_display_frequency) / display_bandwidth;
+			amplitude = 1 - Math.abs((frequency - rx_frequency) / display_bandwidth);
+console.log('bar:', bar, amplitude);
 		}
 		//bar = Math.floor(bar);
 		var x = fft_topleft_x + (bar * fft_bar_width);
@@ -352,7 +377,8 @@ function updateFFT() {
 }
 
 var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height)
-	.attr({stroke: face_stroke, fill: face_fill});
+	.attr({stroke: face_stroke, fill: face_fill})
+	.click(setFrequencyFromClick);
 
 var waterfall_blocks = [];
 var waterfall_y_increment = fft_bar_width;
@@ -409,7 +435,6 @@ var bumpdown = paper.path([
 		e.preventDefault();
 		incrementFrequency(-frequency_increment);
 	});
-
 
 
 var freqtext = paper.text(frequency_topleft_x + frequency_width/2, 

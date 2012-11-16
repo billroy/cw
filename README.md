@@ -39,30 +39,28 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 
 ### TODO:
 
+- click to tune
+	- click in fft or waterfall to tune
+	- bring clicked frequency to center
+	- tuning should shift waterfall pixels left/right and prune
+	- center frequency marker
+	- fft: label with frequencies
+	- fft: click to set frequency
 
-- Heroku install/test
-	- BUG: ugly latency jitter (55-700) 
-		- compare with localhost:1-5
+	- BUG: tuning orphans any running oscillators
 
-- AWS install/test
-	- BUG: ugly latency jitter
+- BUG: waterfall pixels aren't perfect length
+
+- BUG: Ugly latency jitter on Heroku and EC2
 
 - BUG: stuck iambic paddle on rolloff
 - BUG: 300 ms wait time on iPad makes it hard to send
 
-- click to tune
-	- BUG: Oscillators get stuck ON.  perhaps self-expire stuck oscillators?
-	- BUG: change frequency: all running oscillators are stuck
-		- adjust or kill them
-	- tuning should shift waterfall pixels left/right and prune
-	- waterfall pixels aren't perfect length
-	- click in fft or waterfall to tune
+- BUG: Oscillators get stuck ON sometimes during normal operation.  perhaps self-expire stuck oscillators?
 
 - PUT /transmit for web transmit
 
 - fft: show bandwidth
-- fft: label with frequencies
-- fft: click to set frequency
 
 - farnsworth spacing
 - sidetone control 300-900 step 50	
