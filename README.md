@@ -35,6 +35,20 @@ i: zoom in fft
 o: zoom out fft
 
 
+### POSTing text and urls for playback
+
+You can post play requests to the server:
+
+	$ curl -X POST -H 'Content-Type:application/json' -d @testmsg.json localhost:3000/tx
+	$ cat testmsg.json 
+	{
+		"frequency": 7030000,
+		"wpm": 20,
+		"text": "This is the text of the test message."
+	}
+
+If text is a url, the contents of the url are retrieved and played back, instead of the url.  To play a url, put a blank in front of it.
+
 ### Uses:
 
 HTML5 Audio, Socket.io, Express, Raphael.js
@@ -43,13 +57,8 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 ### TODO:
 
 - click to tune
-	- bring clicked frequency to center
-
 	- tuning should shift waterfall pixels left/right and prune
 	- center frequency marker
-	- fft: click to set frequency
-
-	- BUG: tuning orphans any running oscillators
 
 - garbage collect Morse.Morse instances on server?
 
@@ -63,8 +72,6 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 - BUG: Oscillators get stuck ON sometimes during normal operation.  perhaps self-expire stuck oscillators?
 
 - privacy: filter packets on the server
-
-- PUT /tx for web transmit
 
 - handle server down/up better
 

@@ -28,11 +28,24 @@ var request = require('request');
 
 app.configure(function () {
 	app.use(express.logger());
+	app.use(express.bodyParser());
 	app.use(express.static(__dirname + '/public'));
 });
 
 app.get('/', function(req, res) {
 	res.sendfile(__dirname + '/public/index.html');
+});
+
+app.post('/tx', function(req, res) {
+	console.log('post:', req.body);
+	res.send('OK');
+});
+
+// for heroku,
+// per https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
+io.configure(function () { 
+  io.set("transports", ["xhr-polling"]); 
+  io.set("polling duration", 10); 
 });
 
 io.sockets.on('connection', function (socket) {
@@ -57,7 +70,6 @@ io.sockets.on('connection', function (socket) {
 					return;
 				}
 				data.text = response.body;
-console.log('Body:', data);
 				new Morse.Morse(io, data);
 			});
 		}
