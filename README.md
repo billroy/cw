@@ -1,6 +1,8 @@
-# Morse Planet
+# CW
 
-This is a Morse code practice server that works like an internet chat server for morse code: you can send and receive code between separate browsers connected to the server.  It simulates the on-the-air experience over your local network.  (Performance over the open internet is currently poor due to the impact of socket.io path latency jitter.)
+CW is a virtual software-defined radio for morse code practice.
+
+CW works like an internet chat server for morse code: you can send and receive code between separate browsers connected to the server.  It simulates the on-the-air experience over your local network.  (Performance over the open internet is currently poor due to the impact of network path latency jitter.)
 
 The user interface is a simple digital CW radio.  You can send morse using the shift key or by clicking or touching the onscreen transmit button.  You can tune to different frequencies.  There is an FFT spectrum display so you can see signals nearby, and a spectrum waterfall so you can follow recent transmissions.
 
@@ -60,7 +62,16 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 	- tuning should shift waterfall pixels left/right and prune
 	- center frequency marker
 
+- replay should be a count
+
+- @sources
+	- tick server
+	- echo server
+	- play-text server
+		@dirname gives random content from dirname
+
 - garbage collect Morse.Morse instances on server?
+- handle window resize events
 
 - BUG: waterfall pixels aren't perfect length
 

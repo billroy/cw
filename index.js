@@ -17,8 +17,12 @@ if (argv.help) {
 } 
 
 var port;
+var heroku;
 if (argv.port) port = argv.port;
-else if (process && process.env && process.env.PORT) port = process.env.PORT;
+else if (process && process.env && process.env.PORT) {
+	heroku = true;
+	port = process.env.PORT;
+}
 else port = 3000;
 
 var express = require('express');
@@ -38,18 +42,22 @@ app.get('/', function(req, res) {
 
 app.post('/tx', function(req, res) {
 	console.log('post:', req.body);
+	new Morse.Morse(io, req.body);
 	res.send('OK');
 });
 
 // for heroku,
 // per https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
-io.configure(function () { 
-  io.set("transports", ["xhr-polling"]); 
-  io.set("polling duration", 10); 
-});
+if (1 || heroku) {
+	io.configure(function () { 
+		io.set("transports", ["xhr-polling"]); 
+		io.set("polling duration", 10); 
+	});
+}
+io.set('log level', 1);
 
 io.sockets.on('connection', function (socket) {
-	console.log('Client connected.');
+	console.log('Client connected via', socket.transport);
 	socket.on('startTX', function (data) {
 		console.log('startTX:', data);
 		io.sockets.emit('startTX', data);
@@ -78,7 +86,6 @@ io.sockets.on('connection', function (socket) {
 		}
 	});
 	socket.on('ping', function(data) {
-		console.log('ping', data);
 		socket.emit('pong', data);
 	});
 });
