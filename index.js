@@ -59,15 +59,15 @@ io.set('log level', 1);
 io.sockets.on('connection', function (socket) {
 	console.log('Client connected via', socket.transport);
 	socket.on('startTX', function (data) {
-		console.log('startTX:', data);
+		//console.log('startTX:', data);
 		io.sockets.emit('startTX', data);
 	});
 	socket.on('endTX', function (data) {
-		console.log('endTX:', data);
+		//console.log('endTX:', data);
 		io.sockets.emit('endTX', data);
 	});
 	socket.on('send', function (data) {
-		console.log('send:', data);
+		//console.log('send:', data);
 		if (data.text && data.text.match(/^http|https\:\/\//)) {
 			request(data.text, function (error, response, body) {
 				if (error || response.statusCode != 200 || !body) {

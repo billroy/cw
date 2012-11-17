@@ -14,6 +14,8 @@ On iPad you can transmit and see the waterfall, but not receive.  On iPhone, no 
 
 ### Install and Run
 
+You need Node (http://nodejs.org) and Git (http://git-scm.com)
+
 	> git clone http://github.com/billroy/cw
 	> cd cw
 	> npm install
@@ -72,6 +74,7 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 
 - garbage collect Morse.Morse instances on server?
 - handle window resize events
+- ability to stop traffic
 
 - BUG: waterfall pixels aren't perfect length
 
