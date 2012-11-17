@@ -103,7 +103,7 @@ Morse.prototype = {
 	//
 	//	Output messages
 	//
-	morseOn: function() {this.io.sockets.emit('startTX', {frequency: this.frequency});},
+	morseOn: function() {this.io.sockets.emit('startTX', {frequency: this.frequency, color:'white'});},
 	morseOff: function() {this.io.sockets.emit('endTX', {frequency: this.frequency});},
 	
 	//////////

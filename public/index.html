@@ -99,14 +99,15 @@ function startTX(data) {
 		oscillators[frequency] = {
 			users: 1,
 			frequency: frequency,
-			audio_frequency: audio_frequency
+			audio_frequency: audio_frequency,
+			data: data
 		}
 		if ((audio_frequency >= audio_min_bandpass) && (audio_frequency <= audio_max_bandpass)) {
 			osc = context.createOscillator();
 			osc.type = 0;
 			osc.frequency.value = audio_frequency;
 			osc.connect(context.destination);
-			osc.noteOn(0);
+			osc.noteOn(0, 0, 1);
 			oscillators[frequency].osc = osc;
 		}
 	}
@@ -222,6 +223,11 @@ k.down(['alt'], function() {		// iambic dit key
 
 k.down('up', function() {incrementFrequency(frequency_increment);});
 k.down('down', function() {incrementFrequency(-frequency_increment);});
+k.down('right', function() {incrementFrequency(10 * frequency_increment);});
+k.down('left', function() {incrementFrequency(-10 * frequency_increment);});
+k.down('i', function() {display_bandwidth /= 2; setFrequency(rx_frequency);});
+k.down('o', function() {display_bandwidth *= 2; setFrequency(rx_frequency);});
+
 k.down('y', function() {
 	var text = prompt('Enter text:', '');
 	if (text) {
@@ -318,7 +324,7 @@ var dsp_panel = paper.rect(dsp_topleft_x, dsp_topleft_y, dsp_width, dsp_height, 
 	.attr({stroke: face_stroke, fill: face_fill});
 
 var fft = paper.rect(fft_topleft_x, fft_topleft_y, fft_width, fft_height)
-	.attr({stroke: face_stroke, fill: '0-#00f:5-#000:50-#00f:95'})
+	.attr({stroke: face_stroke, fill: '0-#00f:1-#000:50-#00f:99'})
 	.click(setFrequencyFromClick);
 
 var fft_center_label_text = paper.text(fft_center_label_x, fft_center_label_y, ''+rx_frequency)
@@ -346,43 +352,37 @@ var fft_bar_color = 'yellow';
 
 function updateFFT() {
 	while (fft_active_bars.length) fft_active_bars.pop().remove();
-console.log('update');
 	var frequency, bar, amplitude;
 	for (var f in oscillators) {
 		frequency = oscillators[f].frequency;
-console.log('freq:', f, oscillators[f], frequency, typeof frequency);
 		if (typeof frequency != 'number') {
 			bar = fft_numbars/2;
 			amplitude = 1;
-console.log('bar2:', bar, amplitude);
 		}
 		else {
-console.log('bar11');
 
 			if ((frequency < min_display_frequency) || (frequency > max_display_frequency)) continue;
-
-
 			bar = fft_numbars * (frequency - min_display_frequency) / display_bandwidth;
 			amplitude = 1 - Math.abs((frequency - rx_frequency) / display_bandwidth);
-console.log('bar:', bar, amplitude);
 		}
 		//bar = Math.floor(bar);
 		var x = fft_topleft_x + (bar * fft_bar_width);
 		var y = fft_topleft_y + ((1 - amplitude) * fft_height);
+		var color = oscillators[f].data.color || fft_bar_color;
 		var bar_rect = paper.rect(x, y, 
 			fft_bar_width, amplitude * fft_height)
-			.attr({stroke: fft_bar_color, fill: fft_bar_color});
+			.attr({stroke: color, fill: color});
 		fft_active_bars.push(bar_rect);
 
 		if (!oscillators[f].waterfall_block) {
 			oscillators[f].waterfall_block = paper.rect(x, waterfall_topleft_y, fft_bar_width, 1)
-			.attr({stroke: fft_bar_color, fill: fft_bar_color});
+			.attr({stroke: color, fill: color});
 		}
 	}
 }
 
 var waterfall = paper.rect(waterfall_topleft_x, waterfall_topleft_y, waterfall_width, waterfall_height)
-	.attr({stroke: face_stroke, fill: face_fill})
+	.attr({stroke: face_stroke, fill: '0-#00f:1-#000:50-#00f:99'})
 	.click(setFrequencyFromClick);
 
 var waterfall_blocks = [];
@@ -390,7 +390,7 @@ var waterfall_y_increment = fft_bar_width;
 
 function addWaterfallBlock(x) {
 	var block = paper.rect(x, waterfall_topleft_y, fft_bar_width, fft_bar_width)
-			.attr({stroke: fft_bar_color, fill: fft_bar_color});
+			.attr({stroke: fft_bar_color, fill: oscillators[f].data.color || fft_bar_color});
 	waterfall_pixels.push(block);
 }
 

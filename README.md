@@ -6,7 +6,7 @@ The user interface is a simple digital CW radio.  You can send morse using the s
 
 There is a feature for sending practice text; you can send multiple practice texts at once on different frequencies to simulate busy band conditions.
 
-Runs on Safari and Chrome, and the other browsers when they support HTML5 Audio and SVG.
+Runs on Safari and Chrome, and the other browsers when they support HTML5 Audio and SVG.  
 
 On iPad you can transmit and see the waterfall, but not receive.  On iPhone, no dice.
 
@@ -24,12 +24,15 @@ You can optionally run on a port other than 3000, for example 8080:
 
 ### Keyboard Usage
 
-Up, Down: increment/decrement frequency
+Up, Down: increment/decrement frequency, 10 Hz steps
+Left, Right: increment/decrement frequency, 100 Hz steps
 Shift: straight key
 Alt: iambic dit
 Ctrl: iambic dah
 
 y: enter text or URL to send at current frequency
+i: zoom in fft
+o: zoom out fft
 
 
 ### Uses:
@@ -59,20 +62,23 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 
 - BUG: Oscillators get stuck ON sometimes during normal operation.  perhaps self-expire stuck oscillators?
 
-- PUT /transmit for web transmit
+- privacy: filter packets on the server
 
-- fft: show bandwidth
+- PUT /tx for web transmit
+
+- handle server down/up better
 
 - farnsworth spacing
 - sidetone control 300-900 step 50	
-- sendtext: send contents of url
 
 - mute
 
 - button board
 
 - color picker
-- band pass control
+- audio band pass control
+- display band width control
+	i and o
 - url query string -> frequency
 - wpm control for iambic
 - iambic on mouse right click
