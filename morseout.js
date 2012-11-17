@@ -52,7 +52,7 @@ var DEFAULT_SIDETONE = 440;
 var PTT_DELAY = 1000;
 
 function Morse(io, options) {
-	console.log('Init:', options);
+	console.log('Starting morse player:', options);
 	this.io = io;
 	this.init(options);
 }
@@ -80,7 +80,7 @@ Morse.prototype = {
 	setwpm: function(wpm) {
 		this.morse_dit_ms = Math.floor(1200/wpm);
 		this.morse_dah_ms = 3 * this.morse_dit_ms;
-		console.log('dit:', this.morse_dit_ms, ' dah:', this.morse_dah_ms);
+		//console.log('dit:', this.morse_dit_ms, ' dah:', this.morse_dah_ms);
 	},
 
 	morseAvailable: function() {
@@ -182,7 +182,10 @@ Morse.prototype = {
 	
 		case M_END_TX:
 			//PTTOff();
-			if (this.repeat) this.morsePut(this.options.text);
+			if (this.repeat) {
+				this.morsePut(this.options.text);
+				this.repeat--;
+			}
 			this.nextState(M_IDLE, 1000);	// could add tail delay here
 			break;
 		}	// switch

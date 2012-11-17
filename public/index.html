@@ -1,5 +1,6 @@
 <!doctype>
 <html><head>
+<title>Virtual CW</title>
 <script type='text/javascript' src='js/jquery-1.8.2.min.js'></script>
 <script type='text/javascript' src='/js/raphael.js'></script>
 <script type='text/javascript' src='js/kibo.js'></script>
@@ -36,6 +37,7 @@ var oscillators = {};
 
 function setFrequency(newfreq) {
 	stopAllOscillators();
+	var old_rx_frequency = rx_frequency;
 	rx_frequency = newfreq;
 	tx_frequency = newfreq;
 	min_display_frequency = rx_frequency - display_bandwidth/2;
@@ -44,6 +46,11 @@ function setFrequency(newfreq) {
 	fft_left_label_text.attr({text: '' + min_display_frequency});
 	fft_center_label_text.attr({text: '' + rx_frequency});
 	fft_right_label_text.attr({text: '' + max_display_frequency});
+
+	if ((typeof old_rx_frequency === 'number') && (typeof rx_frequency === 'number')) {
+		var df = rx_frequency - old_rx_frequency;
+		updateWaterfallBlockFrequency(df);
+	}
 }
 
 function incrementFrequency(amount) {
@@ -310,7 +317,7 @@ var rx_indicator_off = 'darkgreen';
 var tx_indicator_on = '#00ff00';
 var tx_indicator_off = 'darkgreen';
 
-var face_stroke = 'orange';
+var face_stroke = 'springgreen';
 var face_fill = 'black'
 var button_color = 'red';
 
@@ -325,14 +332,14 @@ var dsp_panel = paper.rect(dsp_topleft_x, dsp_topleft_y, dsp_width, dsp_height, 
 	.attr({stroke: face_stroke, fill: face_fill, 'stroke-width': dsp_stroke_width});
 
 function drawLogo() {
-	var logo_num_bars = 6;
-	var logo_bar_height = .025 * face_height;
-	var logo_bar_height_increment = .025 * face_height;
+	var logo_num_bars = 5;
+	var logo_bar_height = .030 * face_height;
+	var logo_bar_height_increment = .030 * face_height;
 	var logo_bar_width = .95 * face_width;
-	var logo_bar_width_increment = .15 * face_width;
+	var logo_bar_width_increment = .175 * face_width;
 	var logo_bar_stroke_width = 6;
 	var logo_bar_x = (face_width - logo_bar_width)/2;
-	var logo_bar_y = face_topleft_y + .02 * face_height;
+	var logo_bar_y = face_topleft_y + .030 * face_height;
 	
 	for (var bar=0; bar < logo_num_bars; bar++) {
 		paper.rect(logo_bar_x, logo_bar_y, logo_bar_width, logo_bar_height, 20)
@@ -446,6 +453,29 @@ function updateWaterfall() {
 }
 window.setInterval(updateWaterfall, 50);
 
+function updateWaterfallBlockFrequency(df) {
+	var pixel_shift = waterfall_width * (-df / display_bandwidth);
+	var p = 0;
+	while (p<waterfall_blocks.length) {
+		var oldx = parseInt(waterfall_blocks[p].attr('x'));
+		var newx = oldx + pixel_shift;
+
+console.log('Waterfall:', pixel_shift, oldx, newx, waterfall_topleft_x);
+console.log(newx+fft_bar_width, waterfall_topleft_x + waterfall_width);
+console.log((newx < waterfall_topleft_x));
+console.log(((newx + fft_bar_width) > (waterfall_topleft_x + waterfall_width)));
+
+		if ((newx < waterfall_topleft_x) || ((newx + fft_bar_width) > (waterfall_topleft_x + waterfall_width))) {
+console.log('delete');
+			waterfall_blocks[p].remove();
+			waterfall_blocks.splice(p, 1);
+		}
+		else {
+console.log('newx');
+			waterfall_blocks[p++].attr({x: newx});
+		}
+	}
+}
 
 var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_width, frequency_height, 10)
 	.attr({stroke: face_stroke, fill: face_fill, 'stroke-width': dsp_stroke_width});
@@ -570,11 +600,4 @@ var txtext = paper.text(tx_button_x + tx_button_width/2, tx_button_y + tx_button
 
 }); 	// document.ready
 </script>
-
-<p>Press Tab or Shift for straight key.</p>
-<p>Press Control or Alt for iambic keying.</p>
-
-
-
-
 </body></html>

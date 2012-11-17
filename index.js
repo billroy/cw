@@ -31,7 +31,7 @@ var io = require('socket.io').listen(app);
 var request = require('request');
 
 app.configure(function () {
-	app.use(express.logger());
+	//app.use(express.logger());
 	app.use(express.bodyParser());
 	app.use(express.static(__dirname + '/public'));
 });
@@ -41,7 +41,7 @@ app.get('/', function(req, res) {
 });
 
 app.post('/tx', function(req, res) {
-	console.log('post:', req.body);
+	//console.log('post:', req.body);
 	new Morse.Morse(io, req.body);
 	res.send('OK');
 });
@@ -57,7 +57,7 @@ if (1 || heroku) {
 io.set('log level', 1);
 
 io.sockets.on('connection', function (socket) {
-	console.log('Client connected via', socket.transport);
+	//console.log('Client connected via', socket.transport);
 	socket.on('startTX', function (data) {
 		//console.log('startTX:', data);
 		io.sockets.emit('startTX', data);

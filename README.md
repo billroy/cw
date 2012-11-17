@@ -28,15 +28,22 @@ You can optionally run on a port other than 3000, for example 8080:
 
 ### Keyboard Usage
 
-Up, Down: increment/decrement frequency, 10 Hz steps
-Left, Right: increment/decrement frequency, 100 Hz steps
-Shift: straight key
-Alt: iambic dit
-Ctrl: iambic dah
+- Up, Down: increment/decrement frequency, 10 Hz steps
+- Left, Right: increment/decrement frequency, 100 Hz steps
+- Shift: straight key
+- Alt: iambic dit
+- Ctrl: iambic dah
 
-y: enter text or URL to send at current frequency
-i: zoom in fft
-o: zoom out fft
+-y: enter text or URL to send at current frequency
+-i: zoom in fft
+-o: zoom out fft
+
+
+### Alpha "frequencies"
+
+You can enter a frequency that is not a number, like "chatroom".  Only others with exactly the same frequency will hear your transmissions, and vice versa.
+
+Privacy note: Don't count on this for privacy.  Every client sees every dit, even if you're on a non-numeric channel.
 
 
 ### POSTing text and urls for playback
@@ -48,23 +55,20 @@ You can post play requests to the server:
 	{
 		"frequency": 7030000,
 		"wpm": 20,
-		"text": "This is the text of the test message."
+		"text": "This is the text of the test message.",
+		repeat: 10
 	}
 
 If text is a url, the contents of the url are retrieved and played back, instead of the url.  To play a url, put a blank in front of it.
 
-### Uses:
+### Technologies:
 
 HTML5 Audio, Socket.io, Express, Raphael.js
 
 
 ### TODO:
 
-- click to tune
-	- tuning should shift waterfall pixels left/right and prune
-	- center frequency marker
-
-- replay should be a count
+- BUG: key down while tuning leaves stuck oscillators
 
 - @sources
 	- tick server
@@ -72,9 +76,8 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 	- play-text server
 		@dirname gives random content from dirname
 
-- garbage collect Morse.Morse instances on server?
 - handle window resize events
-- ability to stop traffic
+- command from client to stop traffic
 
 - BUG: waterfall pixels aren't perfect length
 
@@ -85,7 +88,12 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 
 - BUG: Oscillators get stuck ON sometimes during normal operation.  perhaps self-expire stuck oscillators?
 
+- server serial input -> morse @ frequency...
+	source: @serial
+
 - privacy: filter packets on the server
+
+
 
 - handle server down/up better
 
