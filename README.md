@@ -78,6 +78,7 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 
 - handle window resize events
 - command from client to stop traffic
+- visible zoom controls
 
 - BUG: waterfall pixels aren't perfect length
 
