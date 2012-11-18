@@ -120,7 +120,7 @@ function startTX(data) {
 			gain.gain.value = 0.5;
 			osc.connect(gain);
 			gain.connect(context.destination);
-			osc.noteOn(0);
+			osc.noteOn && osc.noteOn(0);
 			oscillators[frequency].osc = osc;
 		}
 	}
@@ -424,9 +424,6 @@ var fft_right_label_text = paper.text(fft_right_label_x, fft_center_label_y, ''+
 function setFrequencyFromClick(e) {
 	var frac_x = (e.pageX - fft_topleft_x) / fft_width;
 	var newfreq = Math.floor(min_display_frequency + frac_x * (display_bandwidth));
-
-	console.log('click:', e, frac_x, newfreq);
-
 	setFrequency(newfreq);
 }
 
@@ -456,12 +453,14 @@ function updateFFT() {
 		var color = oscillators[f].data.color || fft_bar_color;
 		var bar_rect = paper.rect(x, y, 
 			fft_bar_width, amplitude * fft_height)
-			.attr({stroke: color, fill: color});
+			.attr({stroke: color, fill: color})
+			.click(function(e) {e.preventDefault(); setFrequency(frequency);});
 		fft_active_bars.push(bar_rect);
 
 		if (!oscillators[f].waterfall_block) {
 			oscillators[f].waterfall_block = paper.rect(x, waterfall_topleft_y, fft_bar_width, 1)
-			.attr({stroke: color, fill: color});
+			.attr({stroke: color, fill: color})
+			.click(function(e) {e.preventDefault(); setFrequency(frequency);});
 		}
 	}
 }

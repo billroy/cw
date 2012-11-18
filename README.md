@@ -1,6 +1,6 @@
 # CW
 
-CW is a virtual software-defined radio for morse code practice.
+CW is a virtual software-defined radio for morse code practice over your local network.
 
 CW works like an internet chat server for morse code: you can send and receive code between separate browsers connected to the server.  It simulates the on-the-air experience over your local network.  (Performance over the open internet is currently poor due to the impact of network path latency jitter.)
 
@@ -42,10 +42,9 @@ You can optionally run on a port other than 3000, for example 8080:
 - Shift: straight key
 - Alt: iambic dit
 - Ctrl: iambic dah
-
--y: enter text or URL to send at current frequency
--i: zoom in fft
--o: zoom out fft
+- y: enter text or URL to send at current frequency
+- i: zoom in fft
+- o: zoom out fft
 
 
 ### Alpha "frequencies"
@@ -100,49 +99,40 @@ Install "forever" to make node run as a daemon.
 	
 ### TODO:
 
+- BUG: No sound on iPad.  Seems to start the oscillator.
+
+- BUG: Ugly latency jitter on Heroku and EC2
+
 - BUG: key down while tuning leaves stuck oscillators
+	never ending the transmission?
+	force etx if txing during frequency change
+
+- BUG: Oscillators get stuck ON sometimes during normal operation.  perhaps self-expire stuck oscillators?
+- BUG: stuck iambic paddle on rolloff
+- BUG: waterfall pixels aren't perfect length
+- BUG: 300 ms wait time on iPad makes it hard to send
 
 - @sources
 	- tick server
 	- echo server
 	- play-text server
 		@dirname gives random content from dirname
+	- server serial input -> morse @ frequency...
+		source: @serial
 
 - handle window resize events
 - command from client to stop traffic
-- visible zoom controls
-
-- BUG: waterfall pixels aren't perfect length
-
-- BUG: Ugly latency jitter on Heroku and EC2
-
-- BUG: stuck iambic paddle on rolloff
-- BUG: 300 ms wait time on iPad makes it hard to send
-
-- BUG: Oscillators get stuck ON sometimes during normal operation.  perhaps self-expire stuck oscillators?
-
-- server serial input -> morse @ frequency...
-	source: @serial
-
+- visible display bandwidth zoom controls
 - privacy: filter packets on the server
-
-
-
 - handle server down/up better
-
 - farnsworth spacing
 - sidetone control 300-900 step 50	
-
 - mute
-
 - button board
-
 - color picker
 - audio band pass control
-- display band width control
-	i and o
 - url query string -> frequency
 - wpm control for iambic
+- big red iambic buttons in the UI
 - iambic on mouse right click
-
 - noise
