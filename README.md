@@ -41,7 +41,7 @@ You can optionally run on a port other than 3000, for example 8080:
 
 ### Alpha "frequencies"
 
-You can enter a frequency that is not a number, like "chatroom".  Only others with exactly the same frequency will hear your transmissions, and vice versa.
+You can enter an alphanumeric frequency that is not a number, like "chatroom23".  Only others with exactly the same frequency will hear your transmissions, and vice versa.
 
 Privacy note: Don't count on this for privacy.  Every client sees every dit, even if you're on a non-numeric channel.
 

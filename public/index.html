@@ -38,6 +38,7 @@ var oscillators = {};
 function setFrequency(newfreq) {
 	stopAllOscillators();
 	var old_rx_frequency = rx_frequency;
+	if (typeof newfreq === 'number') newfreq = Math.floor(newfreq);
 	rx_frequency = newfreq;
 	tx_frequency = newfreq;
 	min_display_frequency = rx_frequency - display_bandwidth/2;
@@ -331,6 +332,42 @@ var face = paper.rect(face_topleft_x, face_topleft_y, face_width, face_height, 2
 var dsp_panel = paper.rect(dsp_topleft_x, dsp_topleft_y, dsp_width, dsp_height, interior_corner_radius)
 	.attr({stroke: face_stroke, fill: face_fill, 'stroke-width': dsp_stroke_width});
 
+var logo_circle;
+
+var logo_drag_start_x;
+var logo_drag_start_y;
+
+function setDragStart(x, y) {
+	logo_drag_start_x = x;
+	logo_drag_start_y = y;
+}
+
+function sign(x) {
+	if (x < 0) return -1;
+	if (x > 0) return 1;
+	return 0;
+}
+
+var logo_circle_x;
+var logo_circle_y;
+
+function logoDragMove(dx, dy, x, y, event) {
+	var dragx = x - logo_drag_start_x;
+	var dragy = y - logo_drag_start_y;
+	var dx = x - logo_circle_x;
+	var dy = y - logo_circle_y;
+	if (dx > dy) incrementFrequency(sign(dx) * dragy * frequency_increment);
+	else incrementFrequency(-sign(dy) * dragx * frequency_increment);
+	setDragStart(x, y);
+}
+
+function logoDragStart(x, y, event) {
+	setDragStart(x, y);
+}
+
+function logoDragEnd(event) {}
+
+
 function drawLogo() {
 	var logo_num_bars = 5;
 	var logo_bar_height = .030 * face_height;
@@ -350,9 +387,11 @@ function drawLogo() {
 		logo_bar_height += logo_bar_height_increment;
 	}
 	var logo_circle_radius = .1 * face_height;
-	var logo_circle_y = face_topleft_y + 1.2 * logo_circle_radius;
-	paper.circle(face_topleft_x + face_width/2, logo_circle_y, logo_circle_radius)
-		.attr({stroke: face_stroke, fill: '315-red:5-white:50-red:90', 'stroke-width': logo_bar_stroke_width}); 
+	logo_circle_x = face_topleft_x + face_width/2;
+	logo_circle_y = face_topleft_y + 1.2 * logo_circle_radius;
+	logo_circle = paper.circle(logo_circle_x, logo_circle_y, logo_circle_radius)
+		.attr({stroke: face_stroke, fill: '315-red:5-white:50-red:90', 'stroke-width': logo_bar_stroke_width})
+		.drag(logoDragMove, logoDragStart, logoDragEnd); 
 
 }
 drawLogo();
@@ -459,19 +498,11 @@ function updateWaterfallBlockFrequency(df) {
 	while (p<waterfall_blocks.length) {
 		var oldx = parseInt(waterfall_blocks[p].attr('x'));
 		var newx = oldx + pixel_shift;
-
-console.log('Waterfall:', pixel_shift, oldx, newx, waterfall_topleft_x);
-console.log(newx+fft_bar_width, waterfall_topleft_x + waterfall_width);
-console.log((newx < waterfall_topleft_x));
-console.log(((newx + fft_bar_width) > (waterfall_topleft_x + waterfall_width)));
-
 		if ((newx < waterfall_topleft_x) || ((newx + fft_bar_width) > (waterfall_topleft_x + waterfall_width))) {
-console.log('delete');
 			waterfall_blocks[p].remove();
 			waterfall_blocks.splice(p, 1);
 		}
 		else {
-console.log('newx');
 			waterfall_blocks[p++].attr({x: newx});
 		}
 	}
@@ -483,7 +514,7 @@ var freqbezel = paper.rect(frequency_topleft_x, frequency_topleft_y, frequency_w
 var bumper_size = .6 * frequency_height;
 var bumper_offset = .1 * frequency_height;
 var bumpup = paper.path([
-	'M', frequency_topleft_x + bumper_size/2 + bumper_offset, frequency_topleft_y + bumper_offset,
+	'M', frequency_topleft_x + bumper_size/2 + bumper_offset, frequency_topleft_y + 2 * bumper_offset,
 	'l', -bumper_size/2, +bumper_size,
 	'l', bumper_size, 0,
 	'z']).attr({fill: face_stroke, stroke:face_stroke})
@@ -494,7 +525,7 @@ var bumpup = paper.path([
 	});
 
 var bumpdown = paper.path([
-	'M', frequency_topleft_x + frequency_width - bumper_size - bumper_offset, frequency_topleft_y + bumper_offset,
+	'M', frequency_topleft_x + frequency_width - bumper_size - bumper_offset, frequency_topleft_y + 2 * bumper_offset,
 	'l', bumper_size, 0,
 	'l', -bumper_size/2, +bumper_size,
 	'z']).attr({fill: face_stroke, stroke:face_stroke})
