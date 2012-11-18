@@ -1,7 +1,7 @@
 //
 // morseout.js: morse transmission injector
 //
-//	Copyright 2012 Bill Roy (MIT License)
+//	Copyright 2012 Bill Roy (MIT License; see LICENSE file)
 //
 
 //////////

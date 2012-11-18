@@ -1,7 +1,7 @@
 //
 // index.js: run the morse server
 //
-//	Copyright 2012 Bill Roy (MIT License)
+//	Copyright 2012 Bill Roy (MIT License; see LICENSE file)
 //
 
 var Morse = require('./morseout.js');

@@ -6,6 +6,8 @@ CW works like an internet chat server for morse code: you can send and receive c
 
 The user interface is a simple digital CW radio.  You can send morse using the shift key or by clicking or touching the onscreen transmit button.  You can tune to different frequencies.  There is an FFT spectrum display so you can see signals nearby, and a spectrum waterfall so you can follow recent transmissions.
 
+![The Radio Interface](https://raw.github.com/billroy/cw/master/screenshot.png)
+
 There is a feature for sending practice text; you can send multiple practice texts at once on different frequencies to simulate busy band conditions.
 
 Runs on Safari and Chrome, and the other browsers when they support HTML5 Audio and SVG.  
@@ -15,6 +17,13 @@ On iPad you can transmit and see the waterfall, but not receive.  On iPhone, no 
 ### Install and Run
 
 You need Node (http://nodejs.org) and Git (http://git-scm.com)
+
+Node users: if npm isn't working after the node install finishes, check your NODE_PATH.  Here's my .bashrc which sets the path:
+
+	NODE_PATH="/usr/local/lib/node_modules"
+	export NODE_PATH
+
+From the command line:
 
 	> git clone http://github.com/billroy/cw
 	> cd cw
@@ -61,13 +70,18 @@ You can post play requests to the server:
 
 If text is a url, the contents of the url are retrieved and played back, instead of the url.  To play a url, put a blank in front of it.
 
+There is a scripted example named "traffic" in the test/ folder that runs some traffic near 7010000:
+
+	> cd test
+	> ./traffic
+
 ### Technologies:
 
-HTML5 Audio, Socket.io, Express, Raphael.js
+HTML5 Audio, Socket.io, Express, Raphael.js, Kibo.js, jQuery
 
 ### EC2 Install
 
-(Note: BUG: poor performance due to jitter)
+(Note: BUG: poor performance due to jitter.  run it on your laptop.)
 
 - Ubuntu 12.04 image
 
