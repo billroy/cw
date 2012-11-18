@@ -58,13 +58,13 @@ io.set('log level', 1);
 
 io.sockets.on('connection', function (socket) {
 	//console.log('Client connected via', socket.transport);
-	socket.on('startTX', function (data) {
-		//console.log('startTX:', data);
-		io.sockets.emit('startTX', data);
+	socket.on('stx', function (data) {
+		//console.log('stx:', data);
+		io.sockets.emit('stx', data);
 	});
-	socket.on('endTX', function (data) {
-		//console.log('endTX:', data);
-		io.sockets.emit('endTX', data);
+	socket.on('etx', function (data) {
+		//console.log('etx:', data);
+		io.sockets.emit('etx', data);
 	});
 	socket.on('send', function (data) {
 		//console.log('send:', data);

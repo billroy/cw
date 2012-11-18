@@ -50,7 +50,6 @@ Privacy note: Don't count on this for privacy.  Every client sees every dit, eve
 
 You can post play requests to the server:
 
-	$ curl -X POST -H 'Content-Type:application/json' -d @testmsg.json localhost:3000/tx
 	$ cat testmsg.json 
 	{
 		"frequency": 7030000,
@@ -58,6 +57,7 @@ You can post play requests to the server:
 		"text": "This is the text of the test message.",
 		repeat: 10
 	}
+	$ curl -X POST -H 'Content-Type:application/json' -d @testmsg.json localhost:3000/tx
 
 If text is a url, the contents of the url are retrieved and played back, instead of the url.  To play a url, put a blank in front of it.
 
@@ -67,6 +67,8 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 
 ### EC2 Install
 
+(Note: BUG: poor performance due to jitter)
+
 - Ubuntu 12.04 image
 
 	sudo apt-get install python-software-properties
@@ -75,7 +77,7 @@ HTML5 Audio, Socket.io, Express, Raphael.js
 	sudo apt-get install nodejs npm
 	sudo apt-get install git-core
 	... then as above:
-	git clone https://billroy/cw
+	git clone https://github.com/billroy/cw
 	cd cw
 	npm install
 	sudo node index -p 80
