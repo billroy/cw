@@ -65,7 +65,23 @@ If text is a url, the contents of the url are retrieved and played back, instead
 
 HTML5 Audio, Socket.io, Express, Raphael.js
 
+### EC2 Install
 
+- Ubuntu 12.04 image
+
+	sudo apt-get install python-software-properties
+	sudo add-apt-repository ppa:chris-lea/node.js
+	sudo apt-get update
+	sudo apt-get install nodejs npm
+	sudo apt-get install git-core
+	... then as above:
+	git clone https://billroy/cw
+	cd cw
+	npm install
+	sudo node index -p 80
+
+Install "forever" to make node run as a daemon.
+	
 ### TODO:
 
 - BUG: key down while tuning leaves stuck oscillators
