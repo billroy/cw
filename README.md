@@ -67,7 +67,9 @@ You can post play requests to the server:
 	}
 	$ curl -X POST -H 'Content-Type:application/json' -d @testmsg.json localhost:3000/tx
 
-If text is a url, the contents of the url are retrieved and played back, instead of the url.  To play a url, put a blank in front of it.
+If text is a url (begins with http:// or https://), the contents of the url are retrieved and played back, instead of the url.  To play a url, put a blank in front of it.
+
+If the text is an RSS feed url (begins with feed://), the contents of the feed are retrieved and played back.
 
 There is a scripted example named "traffic" in the test/ folder that runs some traffic near 7010000:
 
@@ -99,17 +101,14 @@ Install "forever" to make node run as a daemon.
 	
 ### TODO:
 
-- BUG: No sound on iPad.  Seems to start the oscillator.
+- BUG: No sound on iPad.  Seems to make the call to start the oscillator but no sound.
 
 - BUG: Ugly latency jitter on Heroku and EC2
 
-- BUG: key down while tuning leaves stuck oscillators
-	never ending the transmission?
-	force etx if txing during frequency change
-
-- BUG: Oscillators get stuck ON sometimes during normal operation.  perhaps self-expire stuck oscillators?
 - BUG: stuck iambic paddle on rolloff
-- BUG: waterfall pixels aren't perfect length
+
+- BUG: baby waterfall pixels aren't perfect length
+
 - BUG: 300 ms wait time on iPad makes it hard to send
 
 - @sources

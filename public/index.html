@@ -39,6 +39,8 @@ var oscillators = {};
 //}
 
 function setFrequency(newfreq) {
+	//var was_transmitting = transmitting;
+	if (transmitting) end_element();
 	stopAllOscillators();
 	var old_rx_frequency = rx_frequency;
 	if (typeof newfreq === 'number') newfreq = Math.floor(newfreq);
@@ -55,6 +57,7 @@ function setFrequency(newfreq) {
 		var df = rx_frequency - old_rx_frequency;
 		updateWaterfallBlockFrequency(df);
 	}
+	//if (was_transmitting) start_element();
 }
 
 function incrementFrequency(amount) {
@@ -92,7 +95,6 @@ function initSocketIO() {
 
 if (!local_mode) initSocketIO();
 
-
 function startTX(data) {
 	if (!data || !data.frequency) return;
 	var audio_frequency;
@@ -110,16 +112,18 @@ function startTX(data) {
 			users: 1,
 			frequency: frequency,
 			audio_frequency: audio_frequency,
+			start: new Date().getTime(),
 			data: data
 		}
 		if ((audio_frequency >= audio_min_bandpass) && (audio_frequency <= audio_max_bandpass)) {
 			var osc = context.createOscillator();
 			osc.type = 0;
 			osc.frequency.value = audio_frequency;
-			var gain = context.createGainNode();
-			gain.gain.value = 0.5;
-			osc.connect(gain);
-			gain.connect(context.destination);
+			//var gain = context.createGainNode();
+			//gain.gain.value = 0.5;
+			//osc.connect(gain);
+			//gain.connect(context.destination);
+			osc.connect(context.destination);
 			osc.noteOn && osc.noteOn(0);
 			oscillators[frequency].osc = osc;
 		}
@@ -154,82 +158,118 @@ function stopAllOscillators() {
 	}
 }
 
+// failsafe harvest stuck oscillators
+function harvestOscillators() {
+	var now = new Date().getTime();
+	for (var p in oscillators) {	
+		if ((now - oscillators[p].start) > 3000) {
+			endTX({frequency: p});
+		}
+	}
+}
+window.setInterval(harvestOscillators, 1000);
+
+
+var transmitting;
+
 function start_element() {
 	tx_indicator.attr({fill: tx_indicator_on, stroke: tx_indicator_on});
 	//txbutton.attr({'stroke-width': button_stroke_tx_on});
 	txtext.attr({text: 'ON AIR'});
 	if (local_mode) startTX({frequency: sidetone});
 	else socket.emit('stx', {'frequency': tx_frequency});
+	transmitting = 1;
 }
 function end_element() {
+	if (!transmitting) return;
 	tx_indicator.attr({fill: tx_indicator_off, stroke: tx_indicator_off});
 	//txbutton.attr({'stroke-width': button_stroke_tx_off});
 	txtext.attr({text: button_text});
-	if (local_mode) endTX({frequency: sidetone});
-	else socket.emit('etx', {'frequency': tx_frequency});
+	if (transmitting) {
+		if (local_mode) endTX({frequency: sidetone});
+		else socket.emit('etx', {'frequency': tx_frequency});
+	}
+	transmitting = 0;
 }
 
 var wpm = 15;
 var dit_time = Math.floor(1200/wpm);
 var dah_time = 3 * dit_time;
 
+var sending_dahs;
+var sending_dits;
+
 var k = new Kibo();
-k.down(['tab', 'shift'], function() {
-	start_element();
-	return false;
-}).up(['tab', 'shift'], function() {
-	end_element();
-	return false;
-});
+k.down(['shift'], function() { txKeyDown(); })
+	.up(['shift'], function() { txKeyUp(); });
 
+function txKeyDown() { if (!dah_down && !dit_down) start_element(); }
+function txKeyUp() { end_element(); }
 
+function dahDown() {
+console.log('dahDown:', sending_dah, sending_dit, dah_down, dit_down);
+	++dah_down;					// note dah is pressed for decrement in up()
+	if (!sending_dit && (dah_down == 1)) send_iambic_dah();
+}
+function dahUp() { 
+console.log('dahUp:', sending_dah, sending_dit, dah_down, dit_down);
+	if (dah_down) --dah_down; }
 
 var dah_down = 0;
+var sending_dah;
 function send_iambic_dah() {
-	if (!dah_down) {
-		if (dit_down) process.nextTick(send_iambic_dit);
-		return;
-	}
+	sending_dah = true;
 	start_element();
 	window.setTimeout(wait_after_dah, dah_time);
 }
 function wait_after_dah() {
 	end_element();
-	window.setTimeout(send_iambic_dah, dit_time);
+	window.setTimeout(check_repeat_dah, dit_time);
 }
-k.down(['ctrl'], function() {		// iambic dah key
-	++dah_down;						// note dah is pressed for decrement in up()
-	if (dit_down) return false;		// yield if dit already down
-	if (dah_down == 1) send_iambic_dah();
+function check_repeat_dah() {
+	sending_dah = false;
+	if (dah_down) send_iambic_dah();
+	else if (dit_down) send_iambic_dit();
+}
+k.down(['ctrl', 'j'], function() {		// iambic dah key
+	dahDown();
 	return false;
-}).up(['ctrl'], function() {
-	if (dah_down) --dah_down;
-	else console.log('dah underflow');
+}).up(['ctrl', 'j'], function() {
+	dahUp();
 	return false;
 });
 
+function ditDown() {
+console.log('ditDown:', sending_dah, sending_dit, dah_down, dit_down);
+	++dit_down;						// note dit is pressed for decrement in up()
+	if (!sending_dah && (dit_down == 1)) send_iambic_dit();
+}
+function ditUp() { 
+	console.log('ditUp:', sending_dah, sending_dit, dah_down, dit_down);
+	if (dit_down) --dit_down; }
+
 
 var dit_down = 0;
+var sending_dit;
 function send_iambic_dit() {
-	if (!dit_down) {
-		if (dah_down) process.nextTick(send_iambic_dah);
-		return;
-	}
+	sending_dit = true;
 	start_element();
 	window.setTimeout(wait_after_dit, dit_time);
 }
 function wait_after_dit() {
 	end_element();
-	window.setTimeout(send_iambic_dit, dit_time);
+	window.setTimeout(check_repeat_dit, dit_time);
 }
-k.down(['alt'], function() {		// iambic dit key
-	++dit_down;						// note dit is pressed for decrement in up()
-	if (dah_down) return false;		// yield if dah already down
-	if (dit_down == 1) send_iambic_dit();
+function check_repeat_dit() {
+	sending_dit = false;
+	if (dit_down) send_iambic_dit();
+	else if (dah_down) send_iambic_dah();
+}
+k.down(['alt', 'k'], function() {		// iambic dit key
+	ditDown();
 	return false;
-}).up(['alt'], function() {
-	if (dit_down) --dit_down;
-	else console.log('dit underflow');
+}).up(['alt', 'k'], function() {
+	ditUp();
 	return false;
 });
 
@@ -405,6 +445,19 @@ function rotateKnob(degrees) {
 	knob.transform("r" + knob_angle + " " + knob_x + " " + knob_y);
 }
 
+function showLogo() {
+	var left_logo_x = .020 * face_width;
+	var left_logo_y = .1 * face_height;
+	//var left_logo_x = .14 * face_width;
+	//var left_logo_y = .01 * face_height;
+	var left_logo = paper.image('images/thunderdit.png', left_logo_x, left_logo_y, 300, 75);
+	
+	var right_logo_x = .775 * face_width;
+	var right_logo_y = .1 * face_height;
+	var right_logo = paper.image('images/communicator.png', right_logo_x, right_logo_y, 300, 75);
+}
+//showLogo();
+
 var fft = paper.rect(fft_topleft_x, fft_topleft_y, fft_width, fft_height)
 	.attr({stroke: face_stroke, fill: '0-#00f:1-#000:50-#00f:99'})
 	.click(setFrequencyFromClick);
@@ -577,30 +630,31 @@ var rx_indicator_legend = paper.text(rx_indicator_x + (rx_indicator_width/2),
 var txbutton = paper.rect(tx_button_x, tx_button_y, tx_button_width, tx_button_height, 20)
 	.attr({stroke: button_color, fill: face_fill, 'stroke-width': button_stroke_tx_off})
 	.mousedown(function(e) {
-		start_element();
+		txKeyDown();
 		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	})
 	.mouseup(function(e) {
-		end_element();
+		txKeyUp();
 		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	})
 	.touchstart(function(e) {
-		start_element();
+		txKeyDown();
+		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	})
 	.touchcancel(function(e) {
-		end_element();
+		txKeyUp();
 		e.stopPropagation();
 		e.preventDefault();
 		return false;
 	})
 	.touchend(function(e) {
-		end_element();
+		txKeyUp();
 		e.stopPropagation();
 		e.preventDefault();
 		return false;
@@ -633,6 +687,13 @@ var txtext = paper.text(tx_button_x + tx_button_width/2, tx_button_y + tx_button
 		e.preventDefault();
 		return false;
 	});
+
+
+function screw(x, y, radius) {
+	paper.circle(x, y, radius)
+		.attr({stroke: 'gray', fill: '45-gray:0-gray:40-white:50-gray:60-gray:100'});
+}
+//screw(face_topleft_x + .010 * face_width, face_topleft_y + .020 * face_height, 4);
 
 }); 	// document.ready
 </script>

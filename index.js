@@ -71,8 +71,7 @@ io.sockets.on('connection', function (socket) {
 		if (data.text && data.text.match(/^http|https\:\/\//)) {
 			request(data.text, function (error, response, body) {
 				if (error || response.statusCode != 200 || !body) {
-					console.log('Request error:');
-					console.log(error);
+					console.log('Request error:', error);
 					if (response) console.log(response.statusCode);
 					if (body) console.log(body.length);
 					return;
@@ -81,6 +80,36 @@ io.sockets.on('connection', function (socket) {
 				new Morse.Morse(io, data);
 			});
 		}
+		else if (data.text && data.text.match(/^feed\:\/\//)) {
+			var spread_articles = false;
+			var feed = require('feed-read');
+			var feedname = data.text.replace(/^feed\:\/\//, 'http://');
+			feed(feedname, function (error, articles) {
+				if (error || !articles) {
+					console.log('Feed error:', error);
+					if (articles) console.log(articles.length);
+					return;
+				}
+				var output = [];
+				for (var a=0; a<articles.length; a++) {
+					data.text = [
+						articles[a].name, ' - ',
+						articles[a].title, ' - ',
+						articles[a].content, ' - - - '
+					].join('');
+					if (spread_articles) {
+						new Morse.Morse(io, data);
+						data.frequency += 1000;
+					}
+					else output.push(data.text);
+				}
+				if (!spread_articles) {
+					data.text = output.join('');
+					new Morse.Morse(io, data);
+				}
+			});
+		}
+
 		else {
 			new Morse.Morse(io, data);
 		}
