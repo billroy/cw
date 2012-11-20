@@ -104,6 +104,14 @@ Install "forever" to make node run as a daemon.
 - BUG: No sound on iPad.  Seems to make the call to start the oscillator but no sound.
 
 - BUG: Ugly latency jitter on Heroku and EC2
+	even with tcp proxy (though somewhat better)
+	- bug: streams json packets together.  need packet separator.
+
+	- consider sending whole elements {elt:'dit', wpm:15}
+		- half the traffic
+		- works well for iambic
+		- have to wait for keyup from straight key
+		- still has interelement timing problems
 
 - BUG: stuck iambic paddle on rolloff
 
@@ -117,6 +125,7 @@ Install "forever" to make node run as a daemon.
 	- @dir:name play-file server: @dirname gives random content from dirname
 	- @serial: server serial input -> morse @ frequency...
 
+- 'z' to zero beat the tuning
 - handle window resize events
 - command from client to stop traffic
 - visible display bandwidth zoom controls

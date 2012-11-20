@@ -75,9 +75,6 @@ Morse.prototype = {
 		this.run();		// start the scheduler chain
 	},
 
-//	morseOn: function() { console.log('morseOn called without override'); },
-//	morseOff: function() { console.log('morseOff called without override'); },
-	
 	morse_dit_ms: 0,
 	morse_dah_ms: 0,
 

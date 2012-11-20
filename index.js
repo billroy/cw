@@ -9,6 +9,8 @@ var opt = require('optimist');
 var argv = opt.usage('Usage: $0 [flags]')
 	.alias('p', 'port')
 	.describe('p', 'port for the http server')
+	.alias('e', 'echo')
+	.describe('e', 'echo server name or ip')
 	.argv;
 
 if (argv.help) {
@@ -60,19 +62,70 @@ io.sockets.on('connection', function (socket) {
 	//console.log('Client connected via', socket.transport);
 	socket.on('stx', function (data) {
 		//console.log('stx:', data);
-		io.sockets.emit('stx', data);
+		if (echoserver) sendUpstream('stx', data);
+		else io.sockets.emit('stx', data);
 	});
 	socket.on('etx', function (data) {
 		//console.log('etx:', data);
-		io.sockets.emit('etx', data);
+		if (echoserver) sendUpstream('etx', data);
+		else io.sockets.emit('etx', data);
 	});
 	socket.on('send', function (data) {
 		startMorseFeed(data);
 	});
 	socket.on('ping', function(data) {
-		socket.emit('pong', data);
+		if (echoserver) sendUpstream('pong', data);
+		else socket.emit('pong', data);
 	});
 });
+
+
+//////////
+//
+//	Upstream echo server
+//
+var net = require('net');
+var echoserver;
+var echoport = 5000;
+var input_buffer = '';
+
+if (argv.echo) {
+	console.log('Connecting to echo server:', argv.echo, echoport);
+	echoserver = net.connect(echoport, argv.echo, function() {
+		console.log('Connected to echo server:', argv.echo, echoserver.address().port);
+		echoserver.on('data', function(datatext) {
+			input_buffer += ('' + datatext);
+
+			for (;;) {					// de-concatenate json packets
+				if ((input_buffer.length > 0) && (input_buffer.charAt(0) != '{')) {
+					console.log('Echo server frame error:', input_buffer);
+					input_buffer = '';
+					return;
+				}
+				var m = input_buffer.match(/\}/);
+				if (!m) return;
+				var topchunk = input_buffer.slice(0, m.index + 1);
+				input_buffer = input_buffer.slice(m.index + 1);
+
+console.log('echo:', topchunk, input_buffer);
+
+				var data = JSON.parse(topchunk);
+				var cmd = data.cmd;
+				delete data.cmd;			
+				if (cmd == 'stx') io.sockets.emit('stx', data);
+				else if (cmd == 'etx') io.sockets.emit('etx', data);
+				else if (cmd == 'pong') io.sockets.emit('pong', data);
+				else console.log('Unknown command from upstream:', cmd, data);
+			}
+		});
+	});
+}
+
+function sendUpstream(cmd, data) {
+	data.cmd = cmd;
+	echoserver.write(JSON.stringify(data));
+}
+
 
 //////////
 //
