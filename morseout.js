@@ -51,10 +51,9 @@ var DEFAULT_WPM = 15;
 var DEFAULT_SIDETONE = 440;
 var PTT_DELAY = 1000;
 
-function Morse(io, options) {
+function Morse(options, morseOn, morseOff) {
 	console.log('Starting morse player:', options);
-	this.io = io;
-	this.init(options);
+	this.init(options, morseOn, morseOff);
 }
 
 Morse.prototype = {
@@ -65,7 +64,9 @@ Morse.prototype = {
 	//
 	morsebuf: '',
 
-	init: function(options) {
+	init: function(options, morseOn, morseOff) {
+		this.morseOn = morseOn;
+		this.morseOff = morseOff;
 		this.options = options;
 		this.frequency = options.frequency;
 		this.setwpm(options.wpm || DEFAULT_WPM);
@@ -74,6 +75,9 @@ Morse.prototype = {
 		this.run();		// start the scheduler chain
 	},
 
+//	morseOn: function() { console.log('morseOn called without override'); },
+//	morseOff: function() { console.log('morseOff called without override'); },
+	
 	morse_dit_ms: 0,
 	morse_dah_ms: 0,
 
@@ -97,14 +101,7 @@ Morse.prototype = {
 	morsePut: function(string) {
 		this.morsebuf += string;
 	},
-	
-	
-	//////////
-	//
-	//	Output messages
-	//
-	morseOn: function() {this.io.sockets.emit('stx', {frequency: this.frequency, color:'white'});},
-	morseOff: function() {this.io.sockets.emit('etx', {frequency: this.frequency});},
+
 	
 	//////////
 	//

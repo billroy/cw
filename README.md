@@ -109,15 +109,13 @@ Install "forever" to make node run as a daemon.
 
 - BUG: baby waterfall pixels aren't perfect length
 
-- BUG: 300 ms wait time on iPad makes it hard to send
+- BUG: 300 ms wait time on iPad makes it hard to send accurately
 
 - @sources
-	- tick server
-	- echo server
-	- play-text server
-		@dirname gives random content from dirname
-	- server serial input -> morse @ frequency...
-		source: @serial
+	- @tick tick server
+	- @echo echo server
+	- @dir:name play-file server: @dirname gives random content from dirname
+	- @serial: server serial input -> morse @ frequency...
 
 - handle window resize events
 - command from client to stop traffic

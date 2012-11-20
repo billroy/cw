@@ -42,7 +42,7 @@ app.get('/', function(req, res) {
 
 app.post('/tx', function(req, res) {
 	//console.log('post:', req.body);
-	new Morse.Morse(io, req.body);
+	startMorseFeed(req.body);
 	res.send('OK');
 });
 
@@ -67,63 +67,72 @@ io.sockets.on('connection', function (socket) {
 		io.sockets.emit('etx', data);
 	});
 	socket.on('send', function (data) {
-		//console.log('send:', data);
-		if (data.text && data.text.match(/^http|https\:\/\//)) {
-			request(data.text, function (error, response, body) {
-				if (error || response.statusCode != 200 || !body) {
-					console.log('Request error:', error);
-					if (response) console.log(response.statusCode);
-					if (body) console.log(body.length);
-					return;
-				}
-				data.text = response.body;
-				new Morse.Morse(io, data);
-			});
-		}
-		else if (data.text && data.text.match(/^feed\:\/\//)) {
-			var spread_articles = false;
-			var feed = require('feed-read');
-			var feedname = data.text.replace(/^feed\:\/\//, 'http://');
-			feed(feedname, function (error, articles) {
-				if (error || !articles) {
-					console.log('Feed error:', error);
-					if (articles) console.log(articles.length);
-					return;
-				}
-				var output = [];
-				for (var a=0; a<articles.length; a++) {
-					data.text = [
-						articles[a].name, ' - ',
-						articles[a].title, ' - ',
-						articles[a].content, ' - - - '
-					].join('');
-					if (spread_articles) {
-						new Morse.Morse(io, data);
-						data.frequency += 1000;
-					}
-					else output.push(data.text);
-				}
-				if (!spread_articles) {
-					data.text = output.join('');
-					new Morse.Morse(io, data);
-				}
-			});
-		}
-
-		else {
-			new Morse.Morse(io, data);
-		}
+		startMorseFeed(data);
 	});
 	socket.on('ping', function(data) {
 		socket.emit('pong', data);
 	});
 });
 
-if (0) {
-var m1 = new Morse.Morse(io, {
-	frequency: 7029000,
-	text: 'cqcqcq cqcqcq cqcqcq de w1aw w1aw w1aw k',
-	wpm: 15,
-	repeat: true
-});
+//////////
+//
+//	Output messages
+//
+function morseOn() {
+	io.sockets.emit('stx', {frequency: this.frequency, color:'white'});
+}
+
+function morseOff() {
+	io.sockets.emit('etx', {frequency: this.frequency});
+}
+
+
+function startMorseFeed(data) {
+
+	//console.log('send:', data);
+	if (data.text && data.text.match(/^http|https\:\/\//)) {
+		request(data.text, function (error, response, body) {
+			if (error || response.statusCode != 200 || !body) {
+				console.log('Request error:', error);
+				if (response) console.log(response.statusCode);
+				if (body) console.log(body.length);
+				return;
+			}
+			data.text = response.body;
+			new Morse.Morse(data, morseOn, morseOff);
+		});
+	}
+	else if (data.text && data.text.match(/^feed\:\/\//)) {
+		var spread_articles = false;	// true for one cw feed per article
+		var feed = require('feed-read');
+		var feedname = data.text.replace(/^feed\:\/\//, 'http://');
+		feed(feedname, function (error, articles) {
+			if (error || !articles) {
+				console.log('Feed error:', error);
+				if (articles) console.log(articles.length);
+				return;
+			}
+			var output = [];
+			for (var a=0; a<articles.length; a++) {
+				data.text = [
+					articles[a].name, ' - ',
+					articles[a].title, ' - ',
+					articles[a].content, ' - - - '
+				].join('');
+				if (spread_articles) {
+					new Morse.Morse(data, morseOn, morseOff);
+					data.frequency += 1000;
+				}
+				else output.push(data.text);
+			}
+			if (!spread_articles) {
+				data.text = output.join('');
+				new Morse.Morse(data, morseOn, morseOff);
+			}
+		});
+	}
+
+	else {
+		new Morse.Morse(data, morseOn, morseOff);
+	}
 }
