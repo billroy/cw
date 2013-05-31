@@ -89,13 +89,13 @@ HTML5 Audio, Socket.io, Express, Raphael.js, Kibo.js, jQuery
 	sudo apt-get install python-software-properties
 	sudo add-apt-repository ppa:chris-lea/node.js
 	sudo apt-get update
-	sudo apt-get install nodejs npm
-	sudo apt-get install git-core
-	... then as above:
+	sudo apt-get install nodejs npm git-core
 	git clone https://github.com/billroy/cw
 	cd cw
 	npm install
 	sudo node index -p 80
+
+The script EC2-INSTALL in the distribution will do the above commands for you.
 
 Install "forever" to make node run as a daemon.
 	

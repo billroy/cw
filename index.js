@@ -27,16 +27,25 @@ else if (process && process.env && process.env.PORT) {
 }
 else port = 3000;
 
+
+//////////
+//
+//	Configure HTTP server
+//
 var express = require('express');
-var app = module.exports = express.createServer().listen(port);
-var io = require('socket.io').listen(app);
-var request = require('request');
+var app = express();
+var http = require('http');
+var server = http.createServer(app);
+var io = require('socket.io').listen(server);
 
 app.configure(function () {
 	//app.use(express.logger());
 	app.use(express.bodyParser());
 	app.use(express.static(__dirname + '/public'));
 });
+
+server.listen(port);
+console.log('Listening on port:', port);
 
 app.get('/', function(req, res) {
 	res.sendfile(__dirname + '/public/index.html');
@@ -61,12 +70,12 @@ io.set('log level', 1);
 io.sockets.on('connection', function (socket) {
 	//console.log('Client connected via', socket.transport);
 	socket.on('stx', function (data) {
-		//console.log('stx:', data);
+		console.log('stx:', data);
 		if (echoserver) sendUpstream('stx', data);
 		else io.sockets.emit('stx', data);
 	});
 	socket.on('etx', function (data) {
-		//console.log('etx:', data);
+		console.log('etx:', data);
 		if (echoserver) sendUpstream('etx', data);
 		else io.sockets.emit('etx', data);
 	});
@@ -106,9 +115,6 @@ if (argv.echo) {
 				if (!m) return;
 				var topchunk = input_buffer.slice(0, m.index + 1);
 				input_buffer = input_buffer.slice(m.index + 1);
-
-console.log('echo:', topchunk, input_buffer);
-
 				var data = JSON.parse(topchunk);
 				var cmd = data.cmd;
 				delete data.cmd;			
